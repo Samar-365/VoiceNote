@@ -7,19 +7,19 @@ Build a professional Python desktop application for VoiceNote using PySide6, wit
 The project will be developed by three developers:
 
 - Tejas
-- Sanar
+- Samar
 - Atharv
 
 ## 2. Team Role Strategy
 
-The team will work in parallel with clear ownership boundaries. Tejas will serve as the technical lead and integration owner, while Sanar and Atharv will own major feature delivery streams.
+The team will work in parallel with clear ownership boundaries. Tejas will serve as the technical lead and integration owner, while Samar and Atharv will own major feature delivery streams.
 
 ### Workload Distribution
 
 | Developer | Primary Role | Approx. Ownership |
 | --- | --- | --- |https://github.com/Samar-365/VoiceNote.git
 | Tejas | Architecture, core app orchestration, integrations, release readiness | 30-35% |
-| Sanar | UI/UX, recording workflow, transcript experience, settings and dashboard screens | 35-40% |
+| Samar | UI/UX, recording workflow, transcript experience, settings and dashboard screens | 35-40% |
 | Atharv | AI + data pipeline, STT, summarization, vector search, export | 30-35% |
 
 This keeps Tejas focused on the critical backbone without taking all implementation work himself.
@@ -52,9 +52,9 @@ Tejas will own the foundation and integration layer of the product.
 - service orchestration layer
 - packaging and installer readiness
 
-### Sanar — Front-End & User Experience Lead
+### Samar — Front-End & User Experience Lead
 
-Sanar will own the UI experience and user-facing workflows.
+Samar will own the UI experience and user-facing workflows.
 
 #### Responsibilities
 - Design and implement the modern PySide6 desktop UI
@@ -113,7 +113,7 @@ Atharv will own the processing intelligence and backend service workflows.
 - common architecture and conventions
 - login/profile base implementation
 
-#### Sanar
+#### Samar
 - initial UI layout and theme design
 - sidebar, header, and empty workspace shell
 - basic styling and base components
@@ -130,7 +130,7 @@ Atharv will own the processing intelligence and backend service workflows.
 - app event wiring between UI and services
 - app status and service state handling
 
-#### Sanar
+#### Samar
 - recorder widget implementation
 - transcript view and editing UI
 - tag UI and note cards
@@ -148,7 +148,7 @@ Atharv will own the processing intelligence and backend service workflows.
 - data validation and processing flow management
 - app-level error handling and state management
 
-#### Sanar
+#### Samar
 - AI summary panel UI
 - task board layout
 - semantic search results screen
@@ -167,7 +167,7 @@ Atharv will own the processing intelligence and backend service workflows.
 - review quality gates and integration fixes
 - testing coordination and troubleshooting
 
-#### Sanar
+#### Samar
 - final polishing of UI details
 - settings dialog improvements
 - visual consistency review
@@ -186,7 +186,7 @@ Atharv will own the processing intelligence and backend service workflows.
 - release configuration and deployment checks
 - final integration verification
 
-#### Sanar
+#### Samar
 - final UI QA and polish pass
 - icon, spacing, and theme finalization
 
@@ -199,10 +199,10 @@ Atharv will own the processing intelligence and backend service workflows.
 ## 5. Work Coordination Rules
 
 1. Tejas is the final technical owner for architecture and integration.
-2. Sanar owns UI implementation quality and workflow usability.
+2. Samar owns UI implementation quality and workflow usability.
 3. Atharv owns AI/data processing quality and computational functionality.
 4. Tejas should review all cross-layer integration before merge.
-5. Sanar and Atharv should create feature branches and raise integration issues early.
+5. Samar and Atharv should create feature branches and raise integration issues early.
 6. Tejas does not need to do all development work; he should focus on architecture, core app logic, and module coordination.
 7. All developers must maintain code modularity and clean interfaces.
 
@@ -212,7 +212,7 @@ Atharv will own the processing intelligence and backend service workflows.
 
 - Daily standup: 15-20 minutes
 - Tejas reviews architecture and dependency contracts daily
-- Sanar reviews UI consistency and feature flow
+- Samar reviews UI consistency and feature flow
 - Atharv reviews AI pipeline correctness and output quality
 - End-of-sprint review for functionality, bugs, and release readiness
 
@@ -223,7 +223,7 @@ Atharv will own the processing intelligence and backend service workflows.
 By the end of the project:
 
 - Tejas will own the application backbone and core technical health
-- Sanar will deliver the modern user experience and desktop workflow
+- Samar will deliver the modern user experience and desktop workflow
 - Atharv will deliver the AI and data intelligence engine
 
 This distribution ensures a balanced and productive team model while keeping Tejas as the primary technical leader rather than the only implementer.
@@ -233,7 +233,7 @@ This distribution ensures a balanced and productive team model while keeping Tej
 ## 8. Recommended Execution Summary
 
 - Tejas: architecture + login + integration + release leadership
-- Sanar: modern UI + recorder + transcript + settings
+- Samar: modern UI + recorder + transcript + settings
 - Atharv: STT + AI + search + export + analytics
 
 This is the best balance for a professional desktop product with parallel execution and strong technical ownership.
