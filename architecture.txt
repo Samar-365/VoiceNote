@@ -1,0 +1,189 @@
+================================================================================
+SYSTEM ARCHITECTURE SPECIFICATION: VOICENOTE DESKTOP (.EXE)
+================================================================================
+
+1. OVERVIEW & SCOPE
+--------------------------------------------------------------------------------
+VoiceNote Desktop is a privacy-first, local AI-powered Windows desktop application 
+designed to record audio, transcribe speech via faster-whisper, generate summaries 
+and tasks using Ollama (Llama/Gemma), perform vector semantic search using ChromaDB, 
+and export note artifacts (PDF/DOCX/TXT). 
+
+The application is structured into modular Python packages with a PySide6 (Qt) UI, 
+operating entirely offline with secure local storage (SQLite + ChromaDB).
+
+
+2. HIGH-LEVEL SYSTEM ARCHITECTURE DIAGRAM
+--------------------------------------------------------------------------------
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            PRESENTATION LAYER                                │
+│                     PySide6 (Qt for Python Desktop UI)                       │
+│  ┌───────────────┐  ┌────────────────┐  ┌───────────────┐  ┌──────────────┐  │
+│  │ Main Window   │  │ Audio Recorder │  │  Notes View   │  │ Analytics    │  │
+│  │ & Profile     │  │ & Waveform UI  │  │ & Task Board  │  │ Dashboard    │  │
+│  └───────┬───────┘  └───────┬────────┘  └───────┬───────┘  └──────┬───────┘  │
+└──────────┼──────────────────┼───────────────────┼─────────────────┼──────────┘
+           │                  │                   │                 │
+           ▼                  ▼                   ▼                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                    APPLICATION LOGIC / CONTROLLER LAYER                      │
+│            Qt Signals & Slots / Background Worker Threads (QThread)          │
+└──────────────────────────────────┬───────────────────────────────────────────┘
+                                   │
+                                   ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           CORE SERVICES LAYER                                │
+│                                                                              │
+│  ┌────────────────────┐ ┌────────────────────┐ ┌──────────────────────────┐  │
+│  │    Audio Engine    │ │     STT Engine     │ │   AI Summary & Tasks     │  │
+│  │ (sounddevice/wave) │ │  (faster-whisper)  │ │ (Ollama: Llama/Gemma)    │  │
+│  └─────────┬──────────┘ └─────────┬──────────┘ └────────────┬─────────────┘  │
+│            │                      │                         │                │
+│  ┌─────────┴──────────┐ ┌─────────┴──────────┐ ┌────────────┴─────────────┐  │
+│  │  Semantic Search   │ │   Export Engine    │ │    Analytics Engine      │  │
+│  │ (ChromaDB Vector)  │ │  (PDF/DOCX/TXT)    │ │   (Stats & Tagging)      │  │
+│  └─────────┬──────────┘ └─────────┬──────────┘ └────────────┬─────────────┘  │
+└────────────┼──────────────────────┼─────────────────────────┼────────────────┘
+             │                      │                         │
+             ▼                      ▼                         ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           DATA & STORAGE LAYER                               │
+│                                                                              │
+│  ┌─────────────────────────────────┐   ┌──────────────────────────────────┐  │
+│  │        Relational Database      │   │          Vector Database         │  │
+│  │    (SQLite: Profiles, Notes,    │   │      (ChromaDB: Embeddings &     │  │
+│  │     Transcripts, Tasks, Tags)   │   │       Semantic Indexing)         │  │
+│  └─────────────────────────────────┘   └──────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+
+3. LAYERED ARCHITECTURE BREAKDOWN
+--------------------------------------------------------------------------------
+
+3.1 Presentation Layer (PySide6 UI)
+  - Framework: PySide6 (Qt 6 for Python).
+  - Main Component Views:
+    * Profile View (FR1): User profile settings, local preferred AI model selection.
+    * Audio Recording Panel (FR2): Live microphone recording bar, pause/stop/resume, 
+      audio file upload dialog (MP3, WAV, M4A, MP4).
+    * Transcription & Note Editor (FR3, FR6): Interactive transcript viewer, tag editor.
+    * AI Summary & Task Board (FR4, FR5): Summary panels, interactive task management 
+      (owner, status, due date).
+    * Semantic Search Interface (FR7): Vector search query bar with evidence snippets.
+    * Export Dialog (FR8): Format selection (PDF, DOCX, TXT) and template picker.
+    * Analytics Dashboard (FR9): Recording duration metrics, task completion rate, 
+      word count trends.
+  - Threading Architecture: Heavy AI processing (STT, LLM inference, vector indexing) 
+    runs on background worker threads (`QThread` / `QRunnable`) to ensure a responsive 
+    60 FPS desktop UI.
+
+3.2 Core Services Layer
+  - Audio Engine (FR2):
+    * Captures microphone stream via `sounddevice` / `pyaudio`.
+    * Encodes and writes local audio WAV/MP3 files.
+    * Generates real-time audio waveform metrics for UI monitoring.
+  - Speech-To-Text (STT) Engine (FR3):
+    * Integrates `faster-whisper` (CTranslate2 backend).
+    * Automatic GPU (NVIDIA CUDA / Vulkan) detection with CPU fallback.
+    * VAD (Voice Activity Detection) filtering to skip non-speech segments.
+  - AI Summarization & Task Extraction Engine (FR4, FR5):
+    * Interfaces with local Ollama service (`http://localhost:11434`) running 
+      Llama 3 or Gemma models.
+    * Uses structured JSON prompts to extract:
+      1. Concise meeting summary and key bullet points.
+      2. Structured task items (description, owner, status, priority).
+  - Semantic Search Engine (FR7):
+    * Chunks transcripts into timestamped segments (300-500 words).
+    * Computes vector embeddings using ChromaDB local embedding models.
+    * Performs vector similarity queries returning rank-ordered search results.
+  - Tagging & Analytics Engine (FR6, FR9):
+    * Tag assignment & metadata aggregation.
+    * Calculates analytics: total meeting count, duration, word velocity, action items.
+  - Export Engine (FR8):
+    * PDF Generation: `reportlab` library for structured PDF documents.
+    * DOCX Generation: `python-docx` for editable Word documents.
+    * Plain Text (TXT): Standard UTF-8 text generator.
+
+3.3 Data & Storage Layer (Offline & Secure)
+  - SQLite Relational Database (`voicenote.sqlite`):
+    * Schema tables: `users`, `notes`, `transcripts`, `tasks`, `tags`, `note_tags`, `analytics`.
+    * Encrypted local data folder (%APPDATA%\VoiceNote).
+  - ChromaDB Vector Database (`./chroma_db`):
+    * Local persistent vector store holding transcript chunk embeddings for semantic retrieval.
+
+
+4. PROJECT DIRECTORY & MODULE ARCHITECTURE
+--------------------------------------------------------------------------------
+
+voicenote/
+├── pyproject.toml               # Python package config & dependencies
+├── main.py                      # Application entry point (PySide6 QApplication)
+├── voicenote/
+│   ├── __init__.py
+│   ├── config.py                # App configuration, directory paths, settings
+│   ├── ui/                      # Presentation Layer (PySide6)
+│   │   ├── __init__.py
+│   │   ├── main_window.py       # Main Qt Window container
+│   │   ├── components/          # Reusable Qt widgets
+│   │   │   ├── audio_recorder_widget.py
+│   │   │   ├── transcript_view_widget.py
+│   │   │   ├── summary_task_widget.py
+│   │   │   ├── semantic_search_widget.py
+│   │   │   └── analytics_dashboard_widget.py
+│   │   └── dialogs/             # Modal dialogs (Settings, Profile, Export)
+│   ├── core/                    # Core Business Logic Services
+│   │   ├── __init__.py
+│   │   ├── audio_engine.py      # Recording & audio device manager
+│   │   ├── stt_engine.py        # faster-whisper integration
+│   │   ├── ai_engine.py         # Ollama summary & task extraction
+│   │   ├── vector_engine.py     # ChromaDB semantic search index
+│   │   ├── export_engine.py     # PDF/DOCX/TXT exporters
+│   │   └── analytics_engine.py  # User analytics & statistics generator
+│   ├── db/                      # Data Storage Layer
+│   │   ├── __init__.py
+│   │   ├── sqlite_manager.py    # SQLite connection & migration manager
+│   │   ├── models.py            # SQLAlchemy / ORM Data models
+│   │   └── chroma_manager.py    # ChromaDB persistent collection manager
+│   └── utils/                   # Utility helpers
+│       ├── logger.py            # Application logging
+│       ├── threading_utils.py   # Qt QThread worker wrappers
+│       └── file_utils.py        # System paths & binary execution helpers
+├── installer/
+│   ├── voicenote.spec           # PyInstaller build specification
+│   └── setup.iss                # Inno Setup Windows installer script
+└── tests/                       # Automated test suite
+
+
+5. DATA FLOW PIPELINES
+--------------------------------------------------------------------------------
+
+5.1 Audio Recording & Transcription Flow:
+  [Mic Input] ──► [Audio Engine] ──► Save (.wav) ──► [faster-whisper] ──► [SQLite DB]
+                                                            │
+                                                            ▼
+                                                    [UI Live Transcript]
+
+5.2 AI Summary, Task Extraction & Semantic Indexing Flow:
+  [Transcript Text] ──► [Ollama LLM] ──► Extract Summary & Tasks ──► [SQLite DB]
+         │
+         └─────────────► [ChromaDB Engine] ──► Compute Vector Embeddings ──► [Chroma DB]
+
+5.3 Semantic Search Query Flow:
+  [User Search Query] ──► [ChromaDB Vector Query] ──► [Top Match Chunks] ──► [UI Results]
+
+5.4 Export Flow:
+  [Selected Note & Tasks] ──► [Export Engine] ──► Generate (PDF/DOCX/TXT) ──► User File Path
+
+
+6. PACKAGING & DEPLOYMENT SPECIFICATION (.EXE)
+--------------------------------------------------------------------------------
+- Compiler: PyInstaller bundle script (`voicenote.spec`).
+  * Entry point: `main.py`
+  * Embedded binaries: `faster-whisper` CTranslate2 DLLs, PySide6 Qt platform plugins, 
+    ChromaDB dependencies.
+- Installer Package: Inno Setup (`setup.iss`).
+  * Packages executable into a single Windows setup wizard (`VoiceNote_Setup_x64.exe`).
+  * Creates Desktop & Start Menu shortcuts.
+  * Ensures local directory permissions for `%APPDATA%\VoiceNote`.
+================================================================================

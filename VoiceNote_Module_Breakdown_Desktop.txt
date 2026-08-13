@@ -1,0 +1,304 @@
+================================================================================
+MODULE BREAKDOWN SPECIFICATION: VOICENOTE DESKTOP (.EXE)
+================================================================================
+
+1. EXECUTIVE SUMMARY & OVERVIEW
+--------------------------------------------------------------------------------
+This document presents the comprehensive Module Breakdown Specification for 
+VoiceNote Desktop, a privacy-first, offline AI voice note-taking application for 
+Windows (.EXE). 
+
+The module breakdown synthesizes requirements from the Software Requirements 
+Specification (VoiceNote_SRS_Desktop.txt), system design from the Architecture 
+Specification (architecture.txt), and delivery milestones from the Implementation 
+Plan (VoiceNote_Implementation_Plan_Desktop.txt).
+
+Key Operational Characteristics:
+  - Framework: Python 3.11+ / PySide6 (Qt 6)
+  - Execution Model: Standalone Desktop (.EXE) via PyInstaller & Inno Setup
+  - AI Runtimes: Local faster-whisper (CTranslate2) & Local Ollama (Llama 3 / Gemma)
+  - Data Storage: Local SQLite (`voicenote.sqlite`) + Local ChromaDB (`./chroma_db`)
+  - Target Path: `%APPDATA%\VoiceNote`
+
+
+2. COMPLETE PROJECT DIRECTORY & MODULE ARCHITECTURE
+--------------------------------------------------------------------------------
+
+voicenote/
+├── pyproject.toml                         # Dependency specifications & project metadata
+├── main.py                                # Application bootstrap & Qt QApplication lifecycle
+├── voicenote/
+│   ├── __init__.py
+│   ├── config.py                          # App configuration, directories, global constants
+│   ├── ui/                                # Presentation Layer (PySide6 UI)
+│   │   ├── __init__.py
+│   │   ├── main_window.py                 # Main Window container & navigation layout
+│   │   ├── components/                    # Core UI View Widgets
+│   │   │   ├── __init__.py
+│   │   │   ├── audio_recorder_widget.py   # Live audio recorder & file upload widget
+│   │   │   ├── transcript_view_widget.py  # Transcript display, editor & tag selector
+│   │   │   ├── summary_task_widget.py     # AI Summary panel & interactive Task board
+│   │   │   ├── semantic_search_widget.py  # Semantic vector search UI & snippet viewer
+│   │   │   └── analytics_dashboard_widget.py # Charts & stats dashboard
+│   │   └── dialogs/                       # Modal Dialogs
+│   │       ├── __init__.py
+│   │       ├── profile_dialog.py          # User profile & model selection dialog
+│   │       ├── export_dialog.py           # Note export settings & template selector
+│   │       └── settings_dialog.py         # Hardware GPU/CPU & app settings dialog
+│   ├── core/                              # Business Logic & Core Services Layer
+│   │   ├── __init__.py
+│   │   ├── audio_engine.py                # Microphone capture & audio file processing
+│   │   ├── stt_engine.py                  # faster-whisper STT & VAD manager
+│   │   ├── ai_engine.py                   # Ollama LLM integration (summaries & tasks)
+│   │   ├── vector_engine.py               # ChromaDB semantic index & chunking engine
+│   │   ├── analytics_engine.py            # Analytics calculation & metric aggregations
+│   │   └── export_engine.py               # Document generators (PDF, DOCX, TXT)
+│   ├── db/                                # Data Storage & Persistence Layer
+│   │   ├── __init__.py
+│   │   ├── sqlite_manager.py              # SQLite database manager & migration controller
+│   │   ├── models.py                      # SQLAlchemy ORM schemas & entity definitions
+│   │   └── chroma_manager.py              # ChromaDB vector store collection manager
+│   └── utils/                             # Infrastructure & Utility Utilities
+│       ├── __init__.py
+│       ├── logger.py                      # Rotating file logger setup
+│       ├── threading_utils.py             # Qt worker threads & QRunnable managers
+│       └── file_utils.py                  # Paths, APPDATA resolution & binary helpers
+├── installer/                             # Deployment & Distribution
+│   ├── voicenote.spec                     # PyInstaller build spec
+│   └── setup.iss                          # Inno Setup Windows wizard script
+└── tests/                                 # Automated Test Suite
+    ├── test_audio_engine.py               # Audio recording unit tests
+    ├── test_stt_engine.py                 # Whisper transcription unit tests
+    ├── test_ai_engine.py                  # Ollama prompt & task extraction unit tests
+    ├── test_vector_engine.py              # ChromaDB index & search tests
+    ├── test_export_engine.py              # Document output generation tests
+    └── test_db_manager.py                 # SQLite ORM & CRUD tests
+
+
+3. DETAILED MODULE-BY-MODULE SPECIFICATION
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+MODULE 1: BOOTSTRAP & CONFIGURATION
+--------------------------------------------------------------------------------
+1.1 Main Entry Point (`main.py`)
+  - Responsibilities:
+    * Initializes `QApplication` instance with dark/modern UI stylesheet.
+    * Checks local environment prerequisites (Ollama service status, SQLite access).
+    * Spawns `MainWindow` instance and sets up main event loop.
+    * Catches unhandled exceptions and outputs to error logs.
+  - SRS Requirements: NFR (Responsive UI, Modular Architecture)
+  - Phase: Phase 1
+
+1.2 App Configuration (`voicenote/config.py`)
+  - Responsibilities:
+    * Resolves `%APPDATA%\VoiceNote` directory paths for database, logs, and audio storage.
+    * Stores default configuration keys (Ollama endpoint `http://localhost:11434`, default model `llama3`, Whisper model size `base`/`small`).
+    * Manages application environment constants and version flags.
+  - SRS Requirements: NFR (Secure local storage, Offline operation)
+  - Phase: Phase 1
+
+
+--------------------------------------------------------------------------------
+MODULE 2: PRESENTATION LAYER (`voicenote/ui/`)
+--------------------------------------------------------------------------------
+2.1 Main Window (`ui/main_window.py`)
+  - Responsibilities:
+    * Serves as the central shell containing navigation sidebar and dynamic central widget switcher.
+    * Coordinates Qt Signals across sub-widgets (e.g., Audio finished -> trigger STT -> update Transcript View).
+    * Manages status bar notifications and background worker progress bars.
+  - SRS Requirements: NFR (Responsive desktop UI)
+  - Phase: Phase 1
+
+2.2 Audio Recorder Widget (`ui/components/audio_recorder_widget.py`)
+  - Responsibilities:
+    * Renders live audio recording control panel (Record, Pause, Resume, Stop buttons).
+    * Visualizes real-time audio input levels / waveform graphics using Qt Painter.
+    * Provides audio file drag-and-drop / upload dialog for MP3, WAV, M4A, MP4 files.
+    * Triggers background STT pipeline upon recording completion.
+  - SRS Requirements: FR2 (Audio recording/upload)
+  - Phase: Phase 2
+
+2.3 Transcript View Widget (`ui/components/transcript_view_widget.py`)
+  - Responsibilities:
+    * Displays transcript text synchronized with timestamped audio playback.
+    * Allows full text inline editing of transcript content.
+    * Includes tag assignment dropdown and tag creation pill list.
+  - SRS Requirements: FR3 (Whisper transcription), FR6 (Tagging)
+  - Phase: Phase 2, Phase 3
+
+2.4 AI Summary & Task Board Widget (`ui/components/summary_task_widget.py`)
+  - Responsibilities:
+    * Renders generated note summary, key meeting bullet points, and topic insights.
+    * Displays interactive Task Board (Kanban or table list) with columns: Description, Assignee/Owner, Priority, Status (To Do, In Progress, Done), Due Date.
+    * Allows user to manually edit, add, or delete extracted tasks.
+  - SRS Requirements: FR4 (AI summarization), FR5 (Task extraction)
+  - Phase: Phase 3
+
+2.5 Semantic Search Widget (`ui/components/semantic_search_widget.py`)
+  - Responsibilities:
+    * Natural language search input bar.
+    * Displays ranked vector search results with relevance scores, transcript snippet evidence, and original audio timestamps.
+    * Enables click-to-jump to exact transcript line/time location.
+  - SRS Requirements: FR7 (Semantic search)
+  - Phase: Phase 3
+
+2.6 Analytics Dashboard Widget (`ui/components/analytics_dashboard_widget.py`)
+  - Responsibilities:
+    * Displays user usage statistics: total recording hours, note count, word count trend charts.
+    * Visualizes task completion rate gauges and most frequently used tags.
+  - SRS Requirements: FR9 (Analytics)
+  - Phase: Phase 4
+
+2.7 Modal Dialogs (`ui/dialogs/`)
+  - `profile_dialog.py`: User profile setup & Ollama model selector (FR1).
+  - `export_dialog.py`: Format picker (PDF, DOCX, TXT), section toggles, file destination picker (FR8).
+  - `settings_dialog.py`: Audio input device selection, Whisper compute precision (int8, float16), GPU enable toggle.
+  - SRS Requirements: FR1 (User profile), FR8 (Export PDF/DOCX/TXT)
+  - Phase: Phase 1, Phase 4
+
+
+--------------------------------------------------------------------------------
+MODULE 3: CORE SERVICES LAYER (`voicenote/core/`)
+--------------------------------------------------------------------------------
+3.1 Audio Engine (`core/audio_engine.py`)
+  - Responsibilities:
+    * Interacts with `sounddevice` / `pyaudio` to capture raw PCM audio stream from default or selected microphone.
+    * Writes mono/stereo 16kHz WAV files optimized for Whisper STT ingestion.
+    * Calculates RMS audio level frames for UI waveform visualization.
+    * Handles external audio file ingestion and conversion (MP3, M4A -> WAV).
+  - SRS Requirements: FR2 (Audio recording/upload)
+  - Phase: Phase 2
+
+3.2 STT Engine (`core/stt_engine.py`)
+  - Responsibilities:
+    * Initializes and wraps `faster-whisper` CTranslate2 model pipeline.
+    * Auto-detects NVIDIA CUDA GPU / Vulkan hardware acceleration, falling back to multi-threaded CPU processing.
+    * Applies Voice Activity Detection (VAD) to strip silent segments and accelerate transcription.
+    * Outputs transcript segments with precise start/end timestamps and confidence scores.
+  - SRS Requirements: FR3 (Whisper transcription)
+  - Phase: Phase 3
+
+3.3 AI Summary & Task Engine (`core/ai_engine.py`)
+  - Responsibilities:
+    * Communicates via HTTP requests with local Ollama service (`http://localhost:11434`).
+    * Formats structured prompts enforcing JSON schema output for:
+      1. Summary (Executive summary, key topics, decisions made).
+      2. Tasks (Task text, owner, priority level, suggested due date).
+    * Parses and validates raw LLM response into structured Python objects.
+  - SRS Requirements: FR4 (AI summarization), FR5 (Task extraction)
+  - Phase: Phase 3
+
+3.4 Vector & Semantic Search Engine (`core/vector_engine.py`)
+  - Responsibilities:
+    * Text Chunker: Splits complete transcripts into overlapping sliding-window chunks (300-500 words).
+    * Embedder: Computes vector embeddings for transcript chunks via ChromaDB embedding model.
+    * Query Engine: Executes similarity vector queries against ChromaDB index and returns top-K snippet matches with distance metrics.
+  - SRS Requirements: FR7 (Semantic search)
+  - Phase: Phase 3
+
+3.5 Tagging & Analytics Engine (`core/analytics_engine.py`)
+  - Responsibilities:
+    * Computes note metadata, tag correlations, and search indexes.
+    * Aggregates user metrics: total meeting duration, word count velocity, completed vs pending tasks.
+  - SRS Requirements: FR6 (Tagging), FR9 (Analytics)
+  - Phase: Phase 4
+
+3.6 Export Engine (`core/export_engine.py`)
+  - Responsibilities:
+    * PDF Generator: Uses `reportlab` to render formatted PDF notes including header, summary, transcript, task table, and footer.
+    * DOCX Generator: Uses `python-docx` to produce editable Microsoft Word note documents.
+    * TXT Generator: Generates standard plain-text UTF-8 files.
+  - SRS Requirements: FR8 (Export PDF/DOCX/TXT)
+  - Phase: Phase 4
+
+
+--------------------------------------------------------------------------------
+MODULE 4: DATA & STORAGE LAYER (`voicenote/db/`)
+--------------------------------------------------------------------------------
+4.1 SQLite Manager & ORM (`db/sqlite_manager.py` & `db/models.py`)
+  - Responsibilities:
+    * Manages SQLite database connection pool and schema migrations for `voicenote.sqlite`.
+    * Implements ORM data models:
+      - `User`: User profile settings and AI preferences.
+      - `Note`: Master record (title, created_at, audio_path, duration).
+      - `Transcript`: Timestamped segment strings linked to note.
+      - `Task`: Task items (description, owner, status, priority, due_date, note_id).
+      - `Tag` & `NoteTag`: Many-to-many note tagging table.
+      - `Analytics`: Cached metric aggregations.
+    * Provides thread-safe DAO CRUD operations.
+  - SRS Requirements: NFR (Secure local storage, Offline operation)
+  - Phase: Phase 1
+
+4.2 ChromaDB Manager (`db/chroma_manager.py`)
+  - Responsibilities:
+    * Manages persistent ChromaDB vector storage under `%APPDATA%\VoiceNote\chroma_db`.
+    * Initializes vector collections (`transcripts_collection`).
+    * Handles embedding insertion, updates on transcript edit, and vector search deletion.
+  - SRS Requirements: FR7 (Semantic search), NFR (Offline operation)
+  - Phase: Phase 3
+
+
+--------------------------------------------------------------------------------
+MODULE 5: UTILITY INFRASTRUCTURE (`voicenote/utils/`)
+--------------------------------------------------------------------------------
+5.1 Logger (`utils/logger.py`)
+  - Sets up rotating log handlers writing to `%APPDATA%\VoiceNote\logs\voicenote.log`.
+  - Phase: Phase 1
+
+5.2 Threading Utilities (`utils/threading_utils.py`)
+  - Implements Qt `QThread` and `QRunnable` worker thread wrappers.
+  - Emits Qt Signals (`finished`, `error`, `progress`) to maintain smooth 60 FPS UI performance during heavy processing (STT, LLM, Vector indexing).
+  - Phase: Phase 1, Phase 3
+
+5.3 File & System Helpers (`utils/file_utils.py`)
+  - Path normalization, Windows directory creation,FFmpeg/binary existence checks.
+  - Phase: Phase 1
+
+
+--------------------------------------------------------------------------------
+MODULE 6: PACKAGING & BUILD INFRASTRUCTURE (`installer/`)
+--------------------------------------------------------------------------------
+6.1 PyInstaller Spec (`installer/voicenote.spec`)
+  - Bundles Python codebase into standalone executable package.
+  - Includes CTranslate2 DLLs, PySide6 plugins, Ollama client, and ChromaDB binaries.
+  - Phase: Phase 5
+
+6.2 Inno Setup Script (`installer/setup.iss`)
+  - Builds Windows GUI installer wizard (`VoiceNote_Setup_x64.exe`).
+  - Configures Start Menu & Desktop shortcuts, uninstaller, and APPDATA permissions.
+  - Phase: Phase 5
+
+
+4. FUNCTIONAL REQUIREMENT (FR) TO MODULE MAPPING MATRIX
+--------------------------------------------------------------------------------
+FR ID  | Requirement Description    | Core Module(s)         | UI Component(s)              | Storage Backend
+-------|----------------------------|------------------------|------------------------------|----------------
+FR1    | User Profile & Preferences | config.py              | profile_dialog.py            | SQLite (`User`)
+FR2    | Audio Recording / Upload   | audio_engine.py        | audio_recorder_widget.py     | Local WAV Files
+FR3    | Whisper Transcription      | stt_engine.py          | transcript_view_widget.py    | SQLite (`Transcript`)
+FR4    | AI Summarization           | ai_engine.py           | summary_task_widget.py       | SQLite (`Note`)
+FR5    | Task Extraction            | ai_engine.py           | summary_task_widget.py       | SQLite (`Task`)
+FR6    | Tagging System             | analytics_engine.py    | transcript_view_widget.py    | SQLite (`Tag`)
+FR7    | Semantic Search            | vector_engine.py       | semantic_search_widget.py    | ChromaDB Store
+FR8    | Export PDF / DOCX / TXT    | export_engine.py       | export_dialog.py             | Local Filesystem
+FR9    | Analytics Dashboard        | analytics_engine.py    | analytics_dashboard_widget.py| SQLite (`Analytics`)
+
+
+5. IMPLEMENTATION PHASE MAPPING
+--------------------------------------------------------------------------------
+Phase 1 (Foundation & DB):
+  - Modules: `main.py`, `config.py`, `sqlite_manager.py`, `models.py`, `main_window.py`, `profile_dialog.py`, `logger.py`, `threading_utils.py`
+
+Phase 2 (Audio & Notes UI):
+  - Modules: `audio_engine.py`, `audio_recorder_widget.py`, `transcript_view_widget.py`
+
+Phase 3 (AI Core Runtimes & Vector DB):
+  - Modules: `stt_engine.py`, `ai_engine.py`, `vector_engine.py`, `chroma_manager.py`, `summary_task_widget.py`, `semantic_search_widget.py`
+
+Phase 4 (Export, Analytics & Quality):
+  - Modules: `export_engine.py`, `analytics_engine.py`, `export_dialog.py`, `analytics_dashboard_widget.py`, `tests/`
+
+Phase 5 (Packaging & Deployment):
+  - Modules: `voicenote.spec`, `setup.iss`
+================================================================================

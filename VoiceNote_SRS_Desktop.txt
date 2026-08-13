@@ -1,0 +1,58 @@
+SOFTWARE REQUIREMENTS SPECIFICATION
+
+Project: VoiceNote Desktop (.EXE)
+
+1. INTRODUCTION
+VoiceNote is an AI-powered Windows desktop application that records audio, transcribes speech, generates summaries, extracts tasks and enables semantic search.
+
+2. OBJECTIVES
+- Record voice
+- Convert speech to text
+- Generate AI summaries
+- Extract tasks
+- Semantic search
+- Export notes
+
+3. FUNCTIONAL REQUIREMENTS
+FR1 User profile
+FR2 Audio recording/upload
+FR3 Whisper transcription
+FR4 AI summarization
+FR5 Task extraction
+FR6 Tagging
+FR7 Semantic search
+FR8 Export PDF/DOCX/TXT
+FR9 Analytics
+
+4. NON-FUNCTIONAL REQUIREMENTS
+Responsive desktop UI
+Offline operation
+Secure local storage
+Fast transcription
+Scalable modular architecture
+
+5. SYSTEM ARCHITECTURE
+UI: PySide6
+Core: Python
+Database: SQLite
+Vector DB: ChromaDB
+AI: Ollama (Llama/Gemma)
+STT: faster-whisper
+
+6. TECHNOLOGY STACK
+PySide6
+Python
+SQLite
+ChromaDB
+faster-whisper
+Ollama
+PyInstaller
+Inno Setup
+Git/GitHub
+
+7. FUTURE SCOPE
+Cloud sync
+Mobile app
+Plugins
+Collaboration
+Multilingual support
