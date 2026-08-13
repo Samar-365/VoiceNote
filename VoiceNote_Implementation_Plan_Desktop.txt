@@ -18,12 +18,12 @@ Application Controller
 | Semantic Search
 -------------------------------------
     |
-SQLite + ChromaDB
+PostgreSQL + ChromaDB
 
 2. TECHNOLOGY STACK
 UI: PySide6 (Qt)
 Language: Python
-Database: SQLite
+Database: PostgreSQL
 Vector DB: ChromaDB
 Speech-to-Text: faster-whisper
 LLM: Llama/Gemma (Ollama)
@@ -33,7 +33,7 @@ Installer: Inno Setup
 Version Control: Git/GitHub
 
 3. IMPLEMENTATION ROADMAP
-Phase 1: Project setup, UI, SQLite
+Phase 1: Project setup, UI, PostgreSQL database layer
 Phase 2: Audio recording, note management
 Phase 3: Whisper, AI summary, tasks, semantic search
 Phase 4: Export, analytics, testing

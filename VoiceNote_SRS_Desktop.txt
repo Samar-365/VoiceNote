@@ -34,7 +34,7 @@ Scalable modular architecture
 5. SYSTEM ARCHITECTURE
 UI: PySide6
 Core: Python
-Database: SQLite
+Database: PostgreSQL
 Vector DB: ChromaDB
 AI: Ollama (Llama/Gemma)
 STT: faster-whisper
@@ -42,7 +42,8 @@ STT: faster-whisper
 6. TECHNOLOGY STACK
 PySide6
 Python
-SQLite
+PostgreSQL
+psycopg2 / SQLAlchemy
 ChromaDB
 faster-whisper
 Ollama

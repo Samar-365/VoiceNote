@@ -17,7 +17,7 @@ Key Operational Characteristics:
   - Framework: Python 3.11+ / PySide6 (Qt 6)
   - Execution Model: Standalone Desktop (.EXE) via PyInstaller & Inno Setup
   - AI Runtimes: Local faster-whisper (CTranslate2) & Local Ollama (Llama 3 / Gemma)
-  - Data Storage: Local SQLite (`voicenote.sqlite`) + Local ChromaDB (`./chroma_db`)
+  - Data Storage: PostgreSQL (`voicenote` DB) + Local ChromaDB (`./chroma_db`)
   - Target Path: `%APPDATA%\VoiceNote`
 
 
@@ -55,7 +55,7 @@ voicenote/
 │   │   └── export_engine.py               # Document generators (PDF, DOCX, TXT)
 │   ├── db/                                # Data Storage & Persistence Layer
 │   │   ├── __init__.py
-│   │   ├── sqlite_manager.py              # SQLite database manager & migration controller
+│   │   ├── postgres_manager.py            # PostgreSQL database connection pool & migrations
 │   │   ├── models.py                      # SQLAlchemy ORM schemas & entity definitions
 │   │   └── chroma_manager.py              # ChromaDB vector store collection manager
 │   └── utils/                             # Infrastructure & Utility Utilities
@@ -72,7 +72,7 @@ voicenote/
     ├── test_ai_engine.py                  # Ollama prompt & task extraction unit tests
     ├── test_vector_engine.py              # ChromaDB index & search tests
     ├── test_export_engine.py              # Document output generation tests
-    └── test_db_manager.py                 # SQLite ORM & CRUD tests
+    └── test_db_manager.py                 # PostgreSQL ORM & CRUD tests
 
 
 3. DETAILED MODULE-BY-MODULE SPECIFICATION
@@ -84,7 +84,7 @@ MODULE 1: BOOTSTRAP & CONFIGURATION
 1.1 Main Entry Point (`main.py`)
   - Responsibilities:
     * Initializes `QApplication` instance with dark/modern UI stylesheet.
-    * Checks local environment prerequisites (Ollama service status, SQLite access).
+    * Checks local environment prerequisites (Ollama service status, PostgreSQL connectivity).
     * Spawns `MainWindow` instance and sets up main event loop.
     * Catches unhandled exceptions and outputs to error logs.
   - SRS Requirements: NFR (Responsive UI, Modular Architecture)
@@ -92,7 +92,8 @@ MODULE 1: BOOTSTRAP & CONFIGURATION
 
 1.2 App Configuration (`voicenote/config.py`)
   - Responsibilities:
-    * Resolves `%APPDATA%\VoiceNote` directory paths for database, logs, and audio storage.
+    * Resolves `%APPDATA%\VoiceNote` directory paths for logs and audio storage.
+    * Stores PostgreSQL connection parameters (`POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`).
     * Stores default configuration keys (Ollama endpoint `http://localhost:11434`, default model `llama3`, Whisper model size `base`/`small`).
     * Manages application environment constants and version flags.
   - SRS Requirements: NFR (Secure local storage, Offline operation)
@@ -216,9 +217,9 @@ MODULE 3: CORE SERVICES LAYER (`voicenote/core/`)
 --------------------------------------------------------------------------------
 MODULE 4: DATA & STORAGE LAYER (`voicenote/db/`)
 --------------------------------------------------------------------------------
-4.1 SQLite Manager & ORM (`db/sqlite_manager.py` & `db/models.py`)
+4.1 PostgreSQL Manager & ORM (`db/postgres_manager.py` & `db/models.py`)
   - Responsibilities:
-    * Manages SQLite database connection pool and schema migrations for `voicenote.sqlite`.
+    * Manages PostgreSQL database connection pool and schema migrations for `voicenote`.
     * Implements ORM data models:
       - `User`: User profile settings and AI preferences.
       - `Note`: Master record (title, created_at, audio_path, duration).
@@ -226,7 +227,7 @@ MODULE 4: DATA & STORAGE LAYER (`voicenote/db/`)
       - `Task`: Task items (description, owner, status, priority, due_date, note_id).
       - `Tag` & `NoteTag`: Many-to-many note tagging table.
       - `Analytics`: Cached metric aggregations.
-    * Provides thread-safe DAO CRUD operations.
+    * Provides thread-safe DAO CRUD operations using SQLAlchemy engine with `psycopg2` / `psycopg3`.
   - SRS Requirements: NFR (Secure local storage, Offline operation)
   - Phase: Phase 1
 
@@ -274,21 +275,21 @@ MODULE 6: PACKAGING & BUILD INFRASTRUCTURE (`installer/`)
 --------------------------------------------------------------------------------
 FR ID  | Requirement Description    | Core Module(s)         | UI Component(s)              | Storage Backend
 -------|----------------------------|------------------------|------------------------------|----------------
-FR1    | User Profile & Preferences | config.py              | profile_dialog.py            | SQLite (`User`)
+FR1    | User Profile & Preferences | config.py              | profile_dialog.py            | PostgreSQL (`User`)
 FR2    | Audio Recording / Upload   | audio_engine.py        | audio_recorder_widget.py     | Local WAV Files
-FR3    | Whisper Transcription      | stt_engine.py          | transcript_view_widget.py    | SQLite (`Transcript`)
-FR4    | AI Summarization           | ai_engine.py           | summary_task_widget.py       | SQLite (`Note`)
-FR5    | Task Extraction            | ai_engine.py           | summary_task_widget.py       | SQLite (`Task`)
-FR6    | Tagging System             | analytics_engine.py    | transcript_view_widget.py    | SQLite (`Tag`)
+FR3    | Whisper Transcription      | stt_engine.py          | transcript_view_widget.py    | PostgreSQL (`Transcript`)
+FR4    | AI Summarization           | ai_engine.py           | summary_task_widget.py       | PostgreSQL (`Note`)
+FR5    | Task Extraction            | ai_engine.py           | summary_task_widget.py       | PostgreSQL (`Task`)
+FR6    | Tagging System             | analytics_engine.py    | transcript_view_widget.py    | PostgreSQL (`Tag`)
 FR7    | Semantic Search            | vector_engine.py       | semantic_search_widget.py    | ChromaDB Store
 FR8    | Export PDF / DOCX / TXT    | export_engine.py       | export_dialog.py             | Local Filesystem
-FR9    | Analytics Dashboard        | analytics_engine.py    | analytics_dashboard_widget.py| SQLite (`Analytics`)
+FR9    | Analytics Dashboard        | analytics_engine.py    | analytics_dashboard_widget.py| PostgreSQL (`Analytics`)
 
 
 5. IMPLEMENTATION PHASE MAPPING
 --------------------------------------------------------------------------------
 Phase 1 (Foundation & DB):
-  - Modules: `main.py`, `config.py`, `sqlite_manager.py`, `models.py`, `main_window.py`, `profile_dialog.py`, `logger.py`, `threading_utils.py`
+  - Modules: `main.py`, `config.py`, `postgres_manager.py`, `models.py`, `main_window.py`, `profile_dialog.py`, `logger.py`, `threading_utils.py`
 
 Phase 2 (Audio & Notes UI):
   - Modules: `audio_engine.py`, `audio_recorder_widget.py`, `transcript_view_widget.py`

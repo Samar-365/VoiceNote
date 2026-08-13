@@ -10,7 +10,7 @@ and tasks using Ollama (Llama/Gemma), perform vector semantic search using Chrom
 and export note artifacts (PDF/DOCX/TXT). 
 
 The application is structured into modular Python packages with a PySide6 (Qt) UI, 
-operating entirely offline with secure local storage (SQLite + ChromaDB).
+operating entirely offline with secure local database storage (PostgreSQL + ChromaDB).
 
 
 2. HIGH-LEVEL SYSTEM ARCHITECTURE DIAGRAM
@@ -52,7 +52,7 @@ operating entirely offline with secure local storage (SQLite + ChromaDB).
 │                                                                              │
 │  ┌─────────────────────────────────┐   ┌──────────────────────────────────┐  │
 │  │        Relational Database      │   │          Vector Database         │  │
-│  │    (SQLite: Profiles, Notes,    │   │      (ChromaDB: Embeddings &     │  │
+│  │  (PostgreSQL: Profiles, Notes,  │   │      (ChromaDB: Embeddings &     │  │
 │  │     Transcripts, Tasks, Tags)   │   │       Semantic Indexing)         │  │
 │  └─────────────────────────────────┘   └──────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────┘
@@ -106,9 +106,9 @@ operating entirely offline with secure local storage (SQLite + ChromaDB).
     * Plain Text (TXT): Standard UTF-8 text generator.
 
 3.3 Data & Storage Layer (Offline & Secure)
-  - SQLite Relational Database (`voicenote.sqlite`):
+  - PostgreSQL Relational Database (`voicenote` database):
     * Schema tables: `users`, `notes`, `transcripts`, `tasks`, `tags`, `note_tags`, `analytics`.
-    * Encrypted local data folder (%APPDATA%\VoiceNote).
+    * Managed via SQLAlchemy connection pooling with `psycopg2` / `psycopg3` driver support.
   - ChromaDB Vector Database (`./chroma_db`):
     * Local persistent vector store holding transcript chunk embeddings for semantic retrieval.
 
@@ -142,7 +142,7 @@ voicenote/
 │   │   └── analytics_engine.py  # User analytics & statistics generator
 │   ├── db/                      # Data Storage Layer
 │   │   ├── __init__.py
-│   │   ├── sqlite_manager.py    # SQLite connection & migration manager
+│   │   ├── postgres_manager.py  # PostgreSQL connection & migration manager
 │   │   ├── models.py            # SQLAlchemy / ORM Data models
 │   │   └── chroma_manager.py    # ChromaDB persistent collection manager
 │   └── utils/                   # Utility helpers
@@ -159,13 +159,13 @@ voicenote/
 --------------------------------------------------------------------------------
 
 5.1 Audio Recording & Transcription Flow:
-  [Mic Input] ──► [Audio Engine] ──► Save (.wav) ──► [faster-whisper] ──► [SQLite DB]
-                                                            │
-                                                            ▼
-                                                    [UI Live Transcript]
+  [Mic Input] ──► [Audio Engine] ──► Save (.wav) ──► [faster-whisper] ──► [PostgreSQL DB]
+                                                             │
+                                                             ▼
+                                                     [UI Live Transcript]
 
 5.2 AI Summary, Task Extraction & Semantic Indexing Flow:
-  [Transcript Text] ──► [Ollama LLM] ──► Extract Summary & Tasks ──► [SQLite DB]
+  [Transcript Text] ──► [Ollama LLM] ──► Extract Summary & Tasks ──► [PostgreSQL DB]
          │
          └─────────────► [ChromaDB Engine] ──► Compute Vector Embeddings ──► [Chroma DB]
 
