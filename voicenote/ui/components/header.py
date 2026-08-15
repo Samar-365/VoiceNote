@@ -1,0 +1,51 @@
+from PySide6.QtWidgets import (
+    QWidget, QHBoxLayout, QLabel, QPushButton, QLineEdit, QFrame
+)
+from PySide6.QtCore import Signal, Qt
+
+class HeaderWidget(QFrame):
+    """Header Bar Component displaying status indicators & user avatar."""
+    profile_clicked = Signal()
+    search_triggered = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("cardFrame")
+        self.setFixedHeight(64)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 8, 16, 8)
+        layout.setSpacing(12)
+
+        # Global Quick Search LineEdit
+        self.search_bar = QLineEdit()
+        self.search_bar.setPlaceholderText("Search notes, transcripts, or tasks...")
+        self.search_bar.setFixedWidth(320)
+        self.search_bar.returnPressed.connect(lambda: self.search_triggered.emit(self.search_bar.text()))
+        layout.addWidget(self.search_bar)
+
+        layout.addStretch()
+
+        # Engine Status Indicators
+        st_ollama = QLabel("Ollama: llama3:8b")
+        st_ollama.setObjectName("badgeCyan")
+        
+        st_whisper = QLabel("Whisper: Small.en")
+        st_whisper.setObjectName("badgePurple")
+
+        st_db = QLabel("Postgres: Online")
+        st_db.setObjectName("badgeActive")
+
+        layout.addWidget(st_ollama)
+        layout.addWidget(st_whisper)
+        layout.addWidget(st_db)
+
+        layout.addSpacing(12)
+
+        # User Profile Avatar Button
+        btn_profile = QPushButton("Samar (Admin)")
+        btn_profile.setObjectName("primaryBtn")
+        btn_profile.clicked.connect(self.profile_clicked.emit)
+        layout.addWidget(btn_profile)
