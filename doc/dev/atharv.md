@@ -1,0 +1,7 @@
+- **2026-08-15**: Implemented Speech-to-Text engine using Faster-Whisper and tested audio transcription. **File:** `voicenote/core/stt_engine.py`, `tests/test_stt.py`
+
+- **2026-08-16**: Implemented local LLM AI Engine using Ollama and Llama 3 for transcript analysis. **File:** `voicenote/core/ai_engine.py`
+
+- **2026-08-16**: Added summary, key-point, task extraction, JSON parsing, and Pydantic validation. **File:** `voicenote/core/ai_engine.py`
+
+- **2026-08-16**: Tested AI Engine for LLM communication, transcript analysis, and error handling. **File:** `tests/test_ai_engine.py`
