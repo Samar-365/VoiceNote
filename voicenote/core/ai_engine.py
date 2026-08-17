@@ -1,7 +1,12 @@
 import json
+import os
 
-import requests
+from dotenv import load_dotenv
+from google import genai
 from pydantic import BaseModel
+
+
+load_dotenv()
 
 
 class Task(BaseModel):
@@ -18,66 +23,44 @@ class TranscriptAnalysis(BaseModel):
 
 
 class AIEngine:
-    """Interface between VoiceNote and the local Ollama LLM."""
+    """Interface between VoiceNote and the Gemini LLM."""
 
-    def __init__(
-        self,
-        ollama_url="http://localhost:11434",
-        model="llama3",
-    ):
-        self.ollama_url = ollama_url
+    def __init__(self, model="gemini-3.6-flash"):
         self.model = model
 
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+            raise ValueError(
+                "GEMINI_API_KEY is not set."
+            )
+
+        self.client = genai.Client(api_key=api_key)
+
     def generate(self, prompt):
-        """Send a prompt to Ollama and return the generated text."""
+        """Send a prompt to Gemini and return the generated text."""
 
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty.")
 
-        try:
-            response = requests.post(
-                f"{self.ollama_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=120,
-            )
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=prompt,
+        )
 
-            response.raise_for_status()
-
-        except requests.exceptions.ConnectionError as error:
-            raise ConnectionError(
-                "Could not connect to Ollama. "
-                "Make sure Ollama is running."
-            ) from error
-
-        except requests.exceptions.Timeout as error:
-            raise TimeoutError(
-                "Ollama request timed out."
-            ) from error
-
-        except requests.exceptions.HTTPError as error:
-            raise RuntimeError(
-                f"Ollama returned HTTP error: {response.status_code}"
-            ) from error
-
-        data = response.json()
-
-        if "response" not in data:
+        if not response.text:
             raise ValueError(
-                "Ollama response does not contain generated text."
+                "Gemini returned an empty response."
             )
 
-        return data["response"]
+        return response.text
 
     def _parse_json_response(self, raw_response):
         """Extract and parse a JSON object from an LLM response."""
 
         if not raw_response or not raw_response.strip():
             raise ValueError(
-                "Ollama returned an empty response."
+                "Gemini returned an empty response."
             )
 
         start = raw_response.find("{")
@@ -85,7 +68,7 @@ class AIEngine:
 
         if start == -1 or end == -1 or start >= end:
             raise ValueError(
-                "Ollama did not return a valid JSON object."
+                "Gemini did not return a valid JSON object."
             )
 
         json_text = raw_response[start:end + 1]
@@ -95,7 +78,7 @@ class AIEngine:
 
         except json.JSONDecodeError as error:
             raise ValueError(
-                "Ollama returned malformed JSON."
+                "Gemini returned malformed JSON."
             ) from error
 
     def analyze_transcript(self, transcript):
@@ -117,14 +100,7 @@ Analyze the following transcript.
 TRANSCRIPT:
 {transcript}
 
-IMPORTANT:
-Your entire response must be valid JSON.
-Do not write anything before the JSON.
-Do not write anything after the JSON.
-Do not use markdown code blocks.
-Do not explain your answer.
-The first character of your response must be {{
-and the last character must be }}.
+Return ONLY valid JSON.
 
 Use exactly this structure:
 
