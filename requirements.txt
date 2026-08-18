@@ -15,6 +15,7 @@ faster-whisper
 # ollama
 requests
 google-genai
+gorq
 
 # Database & ORM (PostgreSQL)
 # psycopg2-binary>=2.9.9
@@ -36,4 +37,4 @@ python-dotenv
 # pyinstaller>=6.0.0
 
 # env
-dotenv
+python-dotenv

@@ -49,6 +49,46 @@ def test_analyze_transcript():
         print("  Priority:", task.priority)
         print("  Due Date:", task.due_date)
 
+def test_multilingual_transcript():
+    """Test multilingual transcript normalization."""
+
+    ai = AIEngine()
+
+    transcript = """
+    माजे नाओ अत्रवा हैं, माजे शालेच नाओ गुरुकोल असे हैं,
+    माजे शालेची इमारात अत्यंत हवेशिर आणि स्वच्चा हैं.
+    """
+
+    result = ai.analyze_transcript(
+        transcript,
+        language="mr"
+    )
+
+    assert result.language
+    assert result.corrected_transcript
+    assert result.summary
+
+    print("\n✓ test_multilingual_transcript passed")
+
+    print("\nLANGUAGE:")
+    print(result.language)
+
+    print("\nCORRECTED TRANSCRIPT:")
+    print(result.corrected_transcript)
+
+    print("\nSUMMARY:")
+    print(result.summary)
+
+    print("\nKEY POINTS:")
+    for point in result.key_points:
+        print("-", point)
+
+    print("\nTASKS:")
+    for task in result.tasks:
+        print("-", task.task)
+        print("  Owner:", task.owner)
+        print("  Priority:", task.priority)
+        print("  Due Date:", task.due_date)
 
 def test_empty_prompt():
     """Test that empty prompts are rejected."""
@@ -79,6 +119,7 @@ def test_empty_transcript():
 if __name__ == "__main__":
     test_generate()
     test_analyze_transcript()
+    test_multilingual_transcript()
     test_empty_prompt()
     test_empty_transcript()
 

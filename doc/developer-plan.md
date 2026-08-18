@@ -106,7 +106,7 @@ Atharv will own the processing intelligence and backend service workflows.
 
 ### Phase 1: Setup and Foundation
 
-#### Tejas
+#### Tejas  
 - project structure and dependency setup
 - base config and logging
 - app bootstrap and main window shell
