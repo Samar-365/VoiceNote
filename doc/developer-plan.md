@@ -19,8 +19,8 @@ The team will work in parallel with clear ownership boundaries. Tejas will serve
 | Developer | Primary Role | Approx. Ownership |
 | --- | --- | --- |
 | Tejas | Architecture, core app orchestration, integrations, release readiness | 30-35% |
-| Samar | UI/UX, recording workflow, transcript experience, settings, vector search, export, analytics | 40-45% |
-| Atharv | Audio pipeline, STT, summarization, task extraction, data models | 25-30% |
+| Samar | UI/UX, recording workflow, transcript experience, settings, export, analytics | 35-40% |
+| Atharv | Audio pipeline, STT, summarization, task extraction, vector engine/search, data models | 30-35% |
 
 This keeps Tejas focused on the critical backbone without taking all implementation work himself.
 
@@ -52,9 +52,9 @@ Tejas will own the foundation and integration layer of the product.
 - service orchestration layer
 - packaging and installer readiness
 
-### Samar — Front-End, UX, Vector Search & Export/Analytics Lead
+### Samar — Front-End, UX, Export & Analytics Lead
 
-Samar will own the UI experience, user-facing workflows, semantic search, export generation, and analytics engine.
+Samar will own the UI experience, user-facing workflows, export generation, and analytics engine.
 
 #### Responsibilities
 - Design and implement the modern PySide6 desktop UI
@@ -65,8 +65,6 @@ Samar will own the UI experience, user-facing workflows, semantic search, export
 - Deliver polished UI styling using custom QSS and modern visual design
 - Improve usability, motion, spacing, input states, and consistency
 - Ensure screens support responsive desktop experience
-- Build semantic search indexing and vector retrieval
-- Manage ChromaDB and transcript chunk storage
 - Build export engine for PDF/DOCX/TXT generation
 - Implement analytics calculations and note metadata aggregation
 
@@ -77,19 +75,20 @@ Samar will own the UI experience, user-facing workflows, semantic search, export
 - ui/components/analytics_dashboard_widget.py
 - ui/dialogs/profile_dialog.py
 - ui/dialogs/settings_dialog.py
-- core/vector_engine.py
 - core/export_engine.py
 - core/analytics_engine.py
 - modern theme and QSS styling
 
-### Atharv — AI, Data, and Audio Pipeline Lead
+### Atharv — AI, Vector Search, Data, and Audio Pipeline Lead
 
-Atharv will own the audio processing, STT pipeline, AI summarization, and data persistence workflows.
+Atharv will own the audio processing, STT pipeline, AI summarization, vector engine, semantic search backend, and data persistence workflows.
 
 #### Responsibilities
 - Implement audio processing and file management logic
 - Build STT pipeline with faster-whisper and Groq STT integration
 - Implement LLM summarization and task extraction workflows
+- Build semantic search indexing, embeddings, and vector retrieval
+- Manage ChromaDB and transcript chunk storage
 - Support database models and persistence operations for AI-generated content
 
 #### Priority modules
@@ -97,6 +96,7 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 - core/stt_engine.py
 - core/groq_stt_engine.py
 - core/ai_engine.py
+- core/vector_engine.py
 - core/text_cleaner.py
 - db/postgres_manager.py
 - db/models.py
@@ -155,13 +155,13 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 - task board layout
 - semantic search results screen
 - analytics dashboard components
-- vector indexing and search pipeline
-- embeddings and retrieval integration
 
 #### Atharv
 - summary generation and prompt engineering
 - task extraction logic
 - LLM response parsing and structured outputs
+- vector indexing and search pipeline
+- embeddings and retrieval integration
 
 ### Phase 4: Export, Analytics, and Quality
 
@@ -178,9 +178,9 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 - visual consistency review
 
 #### Atharv
-- database and AI pipeline validation
+- database, vector search, and AI pipeline validation
 - STT & AI engine output quality checks
-- end-to-end testing of speech and summarization features
+- end-to-end testing of speech, summarization, and retrieval features
 
 ### Phase 5: Packaging and Release
 
@@ -192,20 +192,20 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 
 #### Samar
 - final UI QA and polish pass
-- export, vector search, and analytics validation
+- export and analytics validation
 - icon, spacing, and theme finalization
 
 #### Atharv
 - final backend QA and pipeline stress checks
-- STT and AI processing validation
+- STT, vector search, and AI processing validation
 
 ---
 
 ## 5. Work Coordination Rules
 
 1. Tejas is the final technical owner for architecture and integration.
-2. Samar owns UI implementation quality, workflow usability, search retrieval, export, and analytics.
-3. Atharv owns AI/audio processing quality and transcription/summarization functionality.
+2. Samar owns UI implementation quality, workflow usability, export, and analytics.
+3. Atharv owns AI/audio processing quality, transcription/summarization functionality, and vector search/retrieval engine.
 4. Tejas should review all cross-layer integration before merge.
 5. Samar and Atharv should create feature branches and raise integration issues early.
 6. Tejas does not need to do all development work; he should focus on architecture, core app logic, and module coordination.
@@ -217,8 +217,8 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 
 - Daily standup: 15-20 minutes
 - Tejas reviews architecture and dependency contracts daily
-- Samar reviews UI consistency, search/export flows, and feature integration
-- Atharv reviews STT & AI pipeline correctness and output quality
+- Samar reviews UI consistency, export flows, and feature integration
+- Atharv reviews STT, AI pipeline correctness, vector search retrieval, and output quality
 - End-of-sprint review for functionality, bugs, and release readiness
 
 ---
@@ -228,8 +228,8 @@ Atharv will own the audio processing, STT pipeline, AI summarization, and data p
 By the end of the project:
 
 - Tejas will own the application backbone and core technical health
-- Samar will deliver the modern user experience, semantic vector search, export engine, and analytics
-- Atharv will deliver the audio processing, STT, and AI intelligence pipeline
+- Samar will deliver the modern user experience, export engine, and analytics
+- Atharv will deliver the audio processing, STT, vector search engine, and AI intelligence pipeline
 
 This distribution ensures a balanced and productive team model while keeping Tejas as the primary technical leader rather than the only implementer.
 
@@ -238,8 +238,8 @@ This distribution ensures a balanced and productive team model while keeping Tej
 ## 8. Recommended Execution Summary
 
 - Tejas: architecture + login + integration + release leadership
-- Samar: modern UI + recorder + transcript + settings + vector search + export + analytics
-- Atharv: audio capture + STT + AI summarization + task extraction
+- Samar: modern UI + recorder + transcript + settings + export + analytics
+- Atharv: audio capture + STT + AI summarization + task extraction + vector engine
 
 This is the best balance for a professional desktop product with parallel execution and strong technical ownership.
 
