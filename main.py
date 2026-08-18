@@ -1,18 +1,59 @@
+#!/usr/bin/env python3
+"""
+VoiceNote Desktop Application Entrypoint.
+Orchestrates PySide6 UI, SQLite Database, and AI Background Services.
+Developed by: Tejas (Architecture & Integration Lead), Samar (UI/UX Lead), Atharv (AI Lead)
+"""
+
 import sys
+import logging
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
+
+from voicenote.config import APP_NAME, VERSION
+from voicenote.db.database import get_db
 from voicenote.ui.main_window import MainWindow
 
+# Configure Application Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("VoiceNote")
+
+
 def main():
-    # Enable High DPI scaling for crisp Windows desktop rendering
+    logger.info(f"Starting {APP_NAME} Desktop v{VERSION}...")
+    
+    # 1. Initialize PySide6 Application
     app = QApplication(sys.argv)
-    app.setApplicationName("VoiceNote Desktop")
+    app.setApplicationName(APP_NAME)
+    app.setApplicationVersion(VERSION)
     app.setOrganizationName("VoiceNote")
 
+    # High DPI Scaling Policy
+    if hasattr(Qt, "AA_EnableHighDpiScaling"):
+        app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    if hasattr(Qt, "AA_UseHighDpiPixmaps"):
+        app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+    # 2. Initialize Database Connection & Migrations
+    try:
+        db = get_db()
+        logger.info(f"Database initialized successfully ({db.get_note_count()} notes loaded).")
+    except Exception as db_err:
+        logger.error(f"Failed to initialize database: {db_err}")
+
+    # 3. Instantiate & Launch Main Application Window
     window = MainWindow()
     window.show()
 
+    logger.info("VoiceNote Main Window launched successfully.")
+    
+    # 4. Start Qt Event Loop
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
