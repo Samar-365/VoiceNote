@@ -24,9 +24,11 @@ class STTEngine:
                 f"Audio path is not a file: {audio_path}"
             )
 
+        # Do not specify language.
+        # Whisper will automatically detect the spoken language.
         segments, info = self.model.transcribe(
             str(audio_path),
-            language="en",
+            language="mr",
             vad_filter=True
         )
 

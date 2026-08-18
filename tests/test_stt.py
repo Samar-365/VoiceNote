@@ -4,12 +4,11 @@ from voicenote.core.stt_engine import STTEngine
 def main():
     print("Loading STT model...")
 
-    stt = STTEngine(model_size="small")
+    stt = STTEngine(model_size="medium")
 
     print("Transcribing audio...")
 
-    result = stt.transcribe("test_audio/test_sample_01.m4a")
-    # result = stt.transcribe("test_audio/does_not_exist.wav")
+    result = stt.transcribe("test_audio/marathi.wma")
 
     print("\n--- TRANSCRIPT ---")
 
