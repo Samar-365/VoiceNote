@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class ProfileDialog(QDialog):
-    """User Profile and System Settings Configuration Dialog."""
+    """User Profile and System Settings Configuration Dialog - Retro Cream Theme."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -91,11 +91,11 @@ class ProfileDialog(QDialog):
         d_layout.setSpacing(12)
 
         d_card = QFrame()
-        d_card.setObjectName("cardFrame")
+        d_card.setObjectName("glassFrame")
         dc_lay = QVBoxLayout(d_card)
 
-        dc_lay.addWidget(QLabel("<b>PostgreSQL Status:</b> <span style='color: #10B981;'>Connected (localhost:5432)</span>"))
-        dc_lay.addWidget(QLabel("<b>ChromaDB Vector Store:</b> <span style='color: #38BDF8;'>Ready (12,450 vectors indexed)</span>"))
+        dc_lay.addWidget(QLabel("<b>PostgreSQL Status:</b> <span style='color: #2E7D32;'>Connected (localhost:5432)</span>"))
+        dc_lay.addWidget(QLabel("<b>ChromaDB Vector Store:</b> <span style='color: #3B82F6;'>Ready (12,450 vectors indexed)</span>"))
         dc_lay.addWidget(QLabel("<b>Local Disk Storage Free:</b> 142 GB"))
 
         d_layout.addWidget(d_card)

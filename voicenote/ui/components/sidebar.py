@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 class SidebarWidget(QFrame):
-    """Navigation Sidebar Widget - Retro Warm Cream Theme."""
+    """Navigation Sidebar Widget - Retro Warm Cream Theme matching assets/."""
     nav_changed = Signal(int)       # Tab index
     export_clicked = Signal()
     settings_clicked = Signal()
@@ -28,6 +28,7 @@ class SidebarWidget(QFrame):
         
         privacy_badge = QLabel("LOCAL AI [SECURE]")
         privacy_badge.setObjectName("badgeActive")
+        privacy_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         brand_v.addWidget(brand_name)
         brand_v.addWidget(privacy_badge)
@@ -37,9 +38,9 @@ class SidebarWidget(QFrame):
 
         # Nav Buttons
         nav_items = [
-            ("Home & Recorder", 0),
-            ("Transcripts & Notes", 1),
-            ("AI Summary & Tasks", 2),
+            ("Home  Recorder", 0),
+            ("Transcripts  Notes", 1),
+            ("AI Summary  Tasks", 2),
             ("Semantic Search", 3),
             ("Analytics Dashboard", 4),
         ]
@@ -66,7 +67,7 @@ class SidebarWidget(QFrame):
         btn_export.clicked.connect(self.export_clicked.emit)
         layout.addWidget(btn_export)
 
-        btn_settings = QPushButton("Settings & Profile")
+        btn_settings = QPushButton("Settings  Profile")
         btn_settings.clicked.connect(self.settings_clicked.emit)
         layout.addWidget(btn_settings)
 

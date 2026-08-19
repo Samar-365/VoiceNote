@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class AnalyticsDashboardWidget(QWidget):
-    """Analytics Dashboard UI Component for usage metrics & insights - Retro Cream Theme."""
+    """Analytics Dashboard UI Component for usage metrics & insights - Retro Cream Theme matching assets/analytics.png."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,7 +15,6 @@ class AnalyticsDashboardWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Scroll Area container so all metrics fit comfortably on all display sizes
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setStyleSheet("QScrollArea { border: none; background-color: #ECE7DF; }")
@@ -40,7 +39,7 @@ class AnalyticsDashboardWidget(QWidget):
 
         metrics = [
             ("Total Voice Notes", "48", "+12 this week", "badgePurple"),
-            ("Total Recording Time", "14h 25m", "Avg 18m / note", "badgeCyan"),
+            ("Total Recording Time", "14h 25m", "Avg 18m / note", "badgePurple"),
             ("Task Completion Rate", "82%", "37 of 45 completed", "badgeActive"),
             ("Local AI Time Saved", "~12.5 hrs", "Whisper + Ollama", "badgeAmber"),
         ]
@@ -104,6 +103,8 @@ class AnalyticsDashboardWidget(QWidget):
             p_bar = QProgressBar()
             p_bar.setRange(0, max_val)
             p_bar.setValue(val)
+            p_bar.setFormat(f"{int((val/max_val)*100)}%")
+            p_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             v_lbl = QLabel(f"{val}m")
             v_lbl.setFixedWidth(40)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 VoiceNote Desktop Application Entrypoint.
-Orchestrates PySide6 UI, SQLite Database, and AI Background Services.
+Orchestrates PySide6 UI, Database, and AI Background Services.
 Developed by: Tejas (Architecture & Integration Lead), Samar (UI/UX Lead), Atharv (AI Lead)
 """
 
@@ -11,14 +11,21 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
 from voicenote.config import APP_NAME, VERSION
-from voicenote.db.database import get_db
+try:
+    from voicenote.db.database import get_db
+except Exception:
+    get_db = None
 from voicenote.ui.main_window import MainWindow
 
-# Configure Application Logging
+# Configure immediate, unbuffered standard output logging
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    stream=sys.stdout,
+    force=True
 )
 logger = logging.getLogger("VoiceNote")
 
@@ -32,24 +39,19 @@ def main():
     app.setApplicationVersion(VERSION)
     app.setOrganizationName("VoiceNote")
 
-    # High DPI Scaling Policy
-    if hasattr(Qt, "AA_EnableHighDpiScaling"):
-        app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(Qt, "AA_UseHighDpiPixmaps"):
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
-
-    # 2. Initialize Database Connection & Migrations
-    try:
-        db = get_db()
-        logger.info(f"Database initialized successfully ({db.get_note_count()} notes loaded).")
-    except Exception as db_err:
-        logger.error(f"Failed to initialize database: {db_err}")
+    # 2. Initialize Database Connection & Migrations (if available)
+    if callable(get_db):
+        try:
+            db = get_db()
+            if db:
+                logger.info(f"Database initialized successfully ({db.get_note_count()} notes loaded).")
+        except Exception as db_err:
+            logger.warning(f"Database connection not available (running in local offline mode): {db_err}")
 
     # 3. Instantiate & Launch Main Application Window
     window = MainWindow()
     window.show()
-
-    logger.info("VoiceNote Main Window launched successfully.")
+    logger.info("VoiceNote Main Window opened and ready for user interactions.")
     
     # 4. Start Qt Event Loop
     sys.exit(app.exec())

@@ -1,3 +1,4 @@
+import logging
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QComboBox, QFrame, QFileDialog, QProgressBar
@@ -5,8 +6,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, Signal
 from voicenote.ui.components.waveform_widget import WaveformWidget
 
+logger = logging.getLogger("AudioRecorder")
+
 class AudioRecorderWidget(QWidget):
-    """Audio Recording and Upload Widget Component - Retro Cream Theme."""
+    """Audio Recording and Upload Widget Component - Retro Cream Theme matching assets/home.png."""
     transcription_requested = Signal(str)
 
     def __init__(self, parent=None):
@@ -64,7 +67,6 @@ class AudioRecorderWidget(QWidget):
         
         self.status_badge = QLabel("IDLE")
         self.status_badge.setObjectName("badgeActive")
-        self.status_badge.setStyleSheet("background-color: #EBF3EC; color: #2E7D32; border: 1px solid #A6D7AC; border-radius: 0px; padding: 4px 10px; font-weight: 700;")
         
         timer_row.addWidget(self.timer_label)
         timer_row.addWidget(self.status_badge)
@@ -95,7 +97,7 @@ class AudioRecorderWidget(QWidget):
         self.btn_pause.setEnabled(False)
         self.btn_pause.clicked.connect(self.toggle_pause)
 
-        self.btn_stop = QPushButton("Stop & Transcribe")
+        self.btn_stop = QPushButton("Stop Transcribe")
         self.btn_stop.setObjectName("stopBtn")
         self.btn_stop.setEnabled(False)
         self.btn_stop.clicked.connect(self.stop_recording)
@@ -147,47 +149,82 @@ class AudioRecorderWidget(QWidget):
 
     def toggle_recording(self):
         if not self.waveform.is_recording and not self.is_paused:
+            logger.info("Live audio recording session started.")
+            self.seconds_elapsed = 0
+            self.timer_label.setText("00:00:00")
             self.waveform.set_recording(True)
             self.timer.start(1000)
             self.btn_record.setText("Recording...")
             self.btn_record.setStyleSheet("background-color: #D04966; border: 1px solid #B93854; color: #FFFFFF;")
+            self.btn_record.setEnabled(False)
             self.btn_pause.setEnabled(True)
+            self.btn_pause.setText("Pause")
             self.btn_stop.setEnabled(True)
             self.status_badge.setText("RECORDING")
-            self.status_badge.setStyleSheet("background-color: #FCE8EC; color: #E05A77; border: 1px solid #F5B0C0; border-radius: 0px; padding: 4px 10px; font-weight: 700;")
-        elif self.is_paused:
+            self.status_badge.setObjectName("badgeRose")
+            self.status_badge.style().unpolish(self.status_badge)
+            self.status_badge.style().polish(self.status_badge)
+
+    def toggle_pause(self):
+        if self.is_paused:
+            logger.info("Audio recording resumed from pause.")
             self.is_paused = False
             self.waveform.set_recording(True)
             self.timer.start(1000)
             self.btn_pause.setText("Pause")
             self.status_badge.setText("RECORDING")
-
-    def toggle_pause(self):
-        if self.waveform.is_recording:
+            self.status_badge.setObjectName("badgeRose")
+            self.status_badge.style().unpolish(self.status_badge)
+            self.status_badge.style().polish(self.status_badge)
+        elif self.waveform.is_recording:
+            logger.info(f"Audio recording paused at {self.timer_label.text()}.")
             self.waveform.set_recording(False)
             self.timer.stop()
             self.is_paused = True
             self.btn_pause.setText("Resume")
             self.status_badge.setText("PAUSED")
-            self.status_badge.setStyleSheet("background-color: #FEF6E6; color: #D97706; border: 1px solid #FCD34D; border-radius: 0px; padding: 4px 10px; font-weight: 700;")
+            self.status_badge.setObjectName("badgeAmber")
+            self.status_badge.style().unpolish(self.status_badge)
+            self.status_badge.style().polish(self.status_badge)
 
     def stop_recording(self):
+        total_time = self.timer_label.text()
+        logger.info(f"Audio recording stopped permanently. Total duration: {total_time}. Sending to processing pipeline...")
+        
+        # 1. Halt all recording activities
         self.waveform.set_recording(False)
         self.timer.stop()
         self.is_paused = False
+        self.seconds_elapsed = 0
+        
+        # 2. Fully lock and reset buttons
         self.btn_record.setText("Start Recording")
         self.btn_record.setStyleSheet("")
+        self.btn_record.setEnabled(False)
+        self.btn_pause.setText("Pause")
         self.btn_pause.setEnabled(False)
         self.btn_stop.setEnabled(False)
-        self.status_badge.setText("IDLE")
-        self.status_badge.setStyleSheet("background-color: #EBF3EC; color: #2E7D32; border: 1px solid #A6D7AC; border-radius: 0px; padding: 4px 10px; font-weight: 700;")
         
+        # 3. Reset status and timer display
+        self.timer_label.setText("00:00:00")
+        self.status_badge.setText("PROCESSING")
+        self.status_badge.setObjectName("badgePurple")
+        self.status_badge.style().unpolish(self.status_badge)
+        self.status_badge.style().polish(self.status_badge)
+        
+        # 4. Trigger processing progress
         self.progress_box.show()
-        QTimer.singleShot(2500, self.finish_processing)
+        QTimer.singleShot(2200, self.finish_processing)
 
     def finish_processing(self):
+        logger.info("Speech transcription and summarization ready.")
         self.progress_box.hide()
-        self.transcription_requested.emit("New Recording")
+        self.status_badge.setText("IDLE")
+        self.status_badge.setObjectName("badgeActive")
+        self.status_badge.style().unpolish(self.status_badge)
+        self.status_badge.style().polish(self.status_badge)
+        self.btn_record.setEnabled(True)
+        self.transcription_requested.emit("New Recording Session")
 
     def update_timer(self):
         self.seconds_elapsed += 1
@@ -200,5 +237,6 @@ class AudioRecorderWidget(QWidget):
             self, "Select Audio File", "", "Audio Files (*.wav *.mp3 *.m4a *.mp4)"
         )
         if file_path:
+            logger.info(f"Selected audio file for processing: {file_path}")
             self.progress_box.show()
             QTimer.singleShot(2000, self.finish_processing)

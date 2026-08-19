@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 class HeaderWidget(QFrame):
-    """Header Bar Component displaying status indicators & user avatar."""
+    """Header Bar Component displaying status indicators & user avatar matching assets/."""
     profile_clicked = Signal()
     search_triggered = Signal(str)
 
@@ -30,7 +30,7 @@ class HeaderWidget(QFrame):
 
         # Engine Status Indicators
         st_ollama = QLabel("Ollama: llama3:8b")
-        st_ollama.setObjectName("badgeCyan")
+        st_ollama.setObjectName("badgePurple")
         
         st_whisper = QLabel("Whisper: Small.en")
         st_whisper.setObjectName("badgePurple")
