@@ -19,24 +19,24 @@ from voicenote.ui.dialogs.export_dialog import ExportDialog
 from voicenote.ui.dialogs.profile_dialog import ProfileDialog
 
 class MainWindow(QMainWindow):
-    """Main Application Window for VoiceNote Desktop."""
+    """Main Application Window for VoiceNote AI Desktop Studio."""
 
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} - {APP_SUBTITLE}")
-        self.resize(1280, 840)
-        self.setMinimumSize(1024, 700)
+        self.resize(1340, 880)
+        self.setMinimumSize(1080, 720)
         self.setStyleSheet(MAIN_STYLE)
-        
         self.init_ui()
 
     def init_ui(self):
         central_widget = QWidget()
+        central_widget.setObjectName("centralWidget")
         self.setCentralWidget(central_widget)
 
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(12, 12, 12, 12)
-        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(14, 14, 14, 14)
+        main_layout.setSpacing(14)
 
         # 1. Left Sidebar Navigation
         self.sidebar = SidebarWidget()
@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         right_container = QWidget()
         right_layout = QVBoxLayout(right_container)
         right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(12)
+        right_layout.setSpacing(14)
 
         # 2. Header Bar
         self.header = HeaderWidget()
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         # 3. Stacked Pages Area
         self.stack = QStackedWidget()
 
-        # View 0: Home / Recorder View
+        # View 0: Studio / Recorder View
         self.home_view = self.create_home_view()
         self.stack.addWidget(self.home_view)
 
@@ -86,7 +86,7 @@ class MainWindow(QMainWindow):
         # Status Bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("VoiceNote Desktop v0.1.0 • All Local AI Services Active (Whisper, Ollama, Postgres, ChromaDB)")
+        self.status_bar.showMessage(f"{APP_NAME} v{VERSION} • All Local AI Services Active (Whisper, Gemini, ChromaDB)")
 
     def create_home_view(self) -> QWidget:
         """Create the main Home View containing Quick Stats, Live Audio Recorder, and Recent Notes."""
@@ -97,17 +97,17 @@ class MainWindow(QMainWindow):
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
 
-        # A. Quick Overview Stat Cards Row
+        # A. Quick Overview Stat Cards Row (Bento Grid)
         stats_row = QHBoxLayout()
         stats_row.setSpacing(12)
 
         stats_data = [
-            ("Total Voice Notes", "24 Notes", "+4 Today", "badgePurple"),
-            ("Recorded Audio", "4h 32m", "Avg 11m/note", "badgeCyan"),
-            ("Pending Tasks", "5 Pending", "18 Completed", "badgeAmber"),
-            ("Local AI Privacy", "100% Offline", "Zero Cloud", "badgeActive"),
+            ("TOTAL VOICE NOTES", "24 Notes", "+4 Today", "badgePurple"),
+            ("AUDIO PROCESSED", "4h 32m", "Avg 11m/note", "badgeCyan"),
+            ("PENDING ACTION ITEMS", "5 Pending", "18 Done", "badgeAmber"),
+            ("LOCAL AI PRIVACY", "100% Secure", "Zero Cloud Leak", "badgeActive"),
         ]
 
         for title, val, sub, badge_cls in stats_data:
@@ -115,19 +115,23 @@ class MainWindow(QMainWindow):
             card.setObjectName("cardFrame")
             c_lay = QVBoxLayout(card)
             c_lay.setContentsMargins(16, 14, 16, 14)
-
-            v_lbl = QLabel(val)
-            v_lbl.setStyleSheet("color: #1E2B4B; font-size: 24px; font-weight: 900; margin: 2px 0;")
+            c_lay.setSpacing(4)
 
             t_lbl = QLabel(title)
-            t_lbl.setStyleSheet("color: #5C6479; font-size: 12px; font-weight: 700;")
+            t_lbl.setStyleSheet("color: #64748B; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;")
 
+            v_lbl = QLabel(val)
+            v_lbl.setStyleSheet("color: #FFFFFF; font-size: 22px; font-weight: 900; margin: 2px 0;")
+
+            badge_row = QHBoxLayout()
             s_lbl = QLabel(sub)
             s_lbl.setObjectName(badge_cls)
+            badge_row.addWidget(s_lbl)
+            badge_row.addStretch()
 
-            c_lay.addWidget(v_lbl)
             c_lay.addWidget(t_lbl)
-            c_lay.addWidget(s_lbl)
+            c_lay.addWidget(v_lbl)
+            c_lay.addLayout(badge_row)
 
             stats_row.addWidget(card)
 
@@ -140,12 +144,12 @@ class MainWindow(QMainWindow):
 
         # C. Recent Voice Notes List
         recent_header = QHBoxLayout()
-        r_title = QLabel("Recent Voice Notes & Transcripts")
-        r_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
+        r_title = QLabel("📝 Recent Voice Notes & Transcripts")
+        r_title.setObjectName("titleLabel")
         
-        btn_view_all = QPushButton("View All Notes ->")
-        btn_view_all.setStyleSheet("background-color: transparent; border: none; color: #6D59A7; font-weight: 700;")
-        btn_view_all.clicked.connect(lambda: self.switch_view(1))
+        btn_view_all = QPushButton("View All Notes →")
+        btn_view_all.setStyleSheet("background-color: transparent; border: none; color: #818CF8; font-weight: 700; font-size: 13px;")
+        btn_view_all.clicked.connect(lambda: self.sidebar.on_nav_click(1))
 
         recent_header.addWidget(r_title)
         recent_header.addStretch()
@@ -153,28 +157,28 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(recent_header)
 
-        # List of sample recent notes
+        # Sample recent notes
         sample_notes = [
             {
                 "title": "Sprint Planning & Local AI Architecture",
                 "date": "Today, 02:30 PM",
                 "duration": "04m 32s",
                 "summary": "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, and ChromaDB vector store integration.",
-                "tags": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"]
+                "tags": ["#Sprint-Planning", "#Architecture", "#Gemini-AI"]
             },
             {
-                "title": "PostgreSQL Schema & Persistence Review",
+                "title": "Database Schema & Persistence Review",
                 "date": "Yesterday, 04:15 PM",
                 "duration": "12m 40s",
-                "summary": "Reviewed user profiles, transcript relational tables, tag associations, and SQLAlchemy model migrations.",
+                "summary": "Reviewed user profiles, transcript relational tables, tag associations, and PostgreSQL database model migrations.",
                 "tags": ["#PostgreSQL", "#Database"]
             },
             {
                 "title": "Task Extraction & AI Prompt Formatting",
                 "date": "Aug 12, 11:00 AM",
                 "duration": "08m 15s",
-                "summary": "Defined JSON structured outputs for Ollama task extraction, priority categorization, and assignee mapping.",
-                "tags": ["#Tasks", "#Ollama-AI", "#High-Priority"]
+                "summary": "Defined JSON structured outputs for LLM task extraction, priority categorization, and assignee mapping.",
+                "tags": ["#Tasks", "#Gemini-AI", "#High-Priority"]
             }
         ]
 
@@ -195,8 +199,8 @@ class MainWindow(QMainWindow):
 
     def switch_view(self, index: int):
         self.stack.setCurrentIndex(index)
-        views = ["Home & Recorder", "Transcripts & Notes", "AI Summary & Tasks", "Semantic Search", "Analytics Dashboard"]
-        self.status_bar.showMessage(f"Active View: {views[index]}")
+        views = ["Studio Recorder", "Transcripts & Notes", "AI Summary & Tasks", "Semantic Vector Search", "Analytics Dashboard"]
+        self.status_bar.showMessage(f"Active Workspace: {views[index]}")
 
     def on_header_search(self, query: str):
         if query.strip():
@@ -211,20 +215,20 @@ class MainWindow(QMainWindow):
     def on_export_note(self, note_title: str):
         dialog = ExportDialog(note_title=note_title, parent=self)
         if dialog.exec():
-            QMessageBox.information(self, "Export Success", f"Successfully exported '{note_title}' to file.")
+            QMessageBox.information(self, "Export Success", f"Successfully generated export document for '{note_title}'.")
 
     def show_export_dialog(self):
         dialog = ExportDialog(parent=self)
         if dialog.exec():
-            QMessageBox.information(self, "Export Success", "Successfully exported selected note.")
+            QMessageBox.information(self, "Export Success", "Successfully exported selected note to file.")
 
     def show_profile_dialog(self):
         dialog = ProfileDialog(parent=self)
         dialog.exec()
 
-    def on_new_recording_finished(self, name: str):
+    def on_new_recording_finished(self, raw_text_or_path: str):
         QMessageBox.information(
             self, "Transcription Complete",
-            "Whisper speech recognition & Ollama AI summary processing completed successfully!\n\nNote added to your dashboard."
+            "Whisper speech recognition & Gemini AI summary processing completed successfully!\n\nNote added to your dashboard."
         )
         self.sidebar.on_nav_click(1)

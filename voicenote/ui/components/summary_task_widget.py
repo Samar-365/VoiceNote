@@ -1,78 +1,90 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QCheckBox, QScrollArea, QInputDialog
+    QFrame, QCheckBox, QScrollArea, QInputDialog, QMessageBox
 )
 from PySide6.QtCore import Qt
 
 class SummaryTaskWidget(QWidget):
-    """AI Summarization & Task Board UI Component - Retro Cream Theme."""
+    """AI Summarization, Task Extraction & Semantic Cross-Reference UI Component - Modern Dark Theme."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tasks = [
-            {"desc": "Implement QThread worker for faster-whisper background STT processing", "priority": "HIGH", "assignee": "Lead Eng", "done": True},
-            {"desc": "Configure local Ollama structured JSON prompt schema for task extraction", "priority": "HIGH", "assignee": "AI Arch", "done": False},
-            {"desc": "Setup ChromaDB collection for transcript vector embeddings and semantic search", "priority": "MEDIUM", "assignee": "Data Eng", "done": False},
-            {"desc": "Build PDF & DOCX export generator using ReportLab / python-docx", "priority": "MEDIUM", "assignee": "Dev Team", "done": False},
-            {"desc": "Integrate PostgreSQL database schema with SQLAlchemy models", "priority": "LOW", "assignee": "Backend Eng", "done": True},
+            {"desc": "Implement QThread worker for faster-whisper background STT processing", "priority": "HIGH", "assignee": "Atharv", "done": True, "date": "Today"},
+            {"desc": "Design Bento Grid layout with live audio waveform in PySide6", "priority": "HIGH", "assignee": "Samar", "done": True, "date": "Today"},
+            {"desc": "Setup ChromaDB vector indexing for transcript chunk retrieval", "priority": "HIGH", "assignee": "Atharv", "done": False, "date": "Tomorrow"},
+            {"desc": "Build PDF, DOCX, and TXT export generator with ReportLab", "priority": "MEDIUM", "assignee": "Samar", "done": False, "date": "Aug 22"},
+            {"desc": "App lifecycle orchestration, session persistence & SQLite schema", "priority": "MEDIUM", "assignee": "Tejas", "done": True, "date": "Yesterday"},
+            {"desc": "Stress test local Whisper vs Groq cloud STT fallback", "priority": "LOW", "assignee": "Tejas", "done": False, "date": "Aug 25"},
         ]
         self.init_ui()
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(16)
 
-        # AI Summary Card
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(14)
+
+        # 1. AI Executive Summary Card
         summary_card = QFrame()
         summary_card.setObjectName("heroCard")
         s_layout = QVBoxLayout(summary_card)
-        s_layout.setContentsMargins(20, 20, 20, 20)
+        s_layout.setContentsMargins(20, 18, 20, 18)
+        s_layout.setSpacing(10)
 
         header_row = QHBoxLayout()
-        stitle = QLabel("AI Executive Summary")
+        stitle = QLabel("🧠 AI Executive Summary & Key Insights")
         stitle.setObjectName("titleLabel")
         
-        model_badge = QLabel("Ollama • llama3:8b")
+        model_badge = QLabel("Gemini 1.5 Flash • faster-whisper")
         model_badge.setObjectName("badgePurple")
 
         header_row.addWidget(stitle)
         header_row.addWidget(model_badge)
         header_row.addStretch()
 
-        btn_regen = QPushButton("Re-generate")
-        btn_regen.setStyleSheet("background-color: #FFFFFF; font-size: 12px; border: 1px solid #E2DDD3;")
+        btn_regen = QPushButton("🔄 Re-analyze with AI")
+        btn_regen.setObjectName("primaryBtn")
+        btn_regen.setStyleSheet("font-size: 11px; padding: 4px 12px;")
+        btn_regen.clicked.connect(self.reanalyze)
         header_row.addWidget(btn_regen)
 
         s_layout.addLayout(header_row)
-        s_layout.addSpacing(8)
 
-        # Overview Content
         summary_text = QLabel(
-            "<b>Overview:</b> The team aligned on building a privacy-first, local-only desktop application using PySide6. "
-            "All speech recognition (Whisper) and LLM inference (Ollama) will run locally on client machines.<br><br>"
-            "<b>Key Decisions:</b><br>"
-            "• Use <b>PySide6 QThreads</b> to prevent UI freeze during audio transcription.<br>"
-            "• Utilize <b>ChromaDB</b> for indexing note chunk embeddings for instant semantic search.<br>"
-            "• Provide seamless <b>PDF, DOCX, and TXT</b> export options directly from the home dashboard."
+            "<b>TL;DR:</b> The team conducted an architectural sync on the VoiceNote Desktop product. "
+            "Ownership boundaries were locked between <b>Tejas</b> (Core Backbone & Orchestration), <b>Samar</b> (Modern PySide6 UX, Export & Analytics), "
+            "and <b>Atharv</b> (AI Pipeline, STT, Vector DB & Persistence).<br><br>"
+            "<b>Key Architectural Decisions:</b><br>"
+            "• <b>Non-blocking UI:</b> Audio capture and Whisper speech recognition execute strictly in background QThreads.<br>"
+            "• <b>Vector Search:</b> ChromaDB indexes chunked transcript embeddings for sub-millisecond semantic retrieval.<br>"
+            "• <b>Multi-Format Export:</b> Support PDF, DOCX, Markdown, and TXT direct generation with customizable sections."
         )
         summary_text.setWordWrap(True)
-        summary_text.setStyleSheet("color: #5C6479; font-size: 13px; line-height: 1.6;")
+        summary_text.setStyleSheet("color: #E2E8F0; font-size: 13px; line-height: 1.6;")
         s_layout.addWidget(summary_text)
 
-        main_layout.addWidget(summary_card)
+        layout.addWidget(summary_card)
 
-        # Task Extraction Board Section
+        # 2. Extracted Action Items Section
         task_card = QFrame()
         task_card.setObjectName("cardFrame")
         t_layout = QVBoxLayout(task_card)
-        t_layout.setContentsMargins(20, 20, 20, 20)
+        t_layout.setContentsMargins(20, 18, 20, 18)
+        t_layout.setSpacing(12)
 
         t_header = QHBoxLayout()
-        t_title = QLabel("Extracted Action Items & Tasks")
+        t_title = QLabel("✅ Extracted Action Items & Deliverables")
         t_title.setObjectName("titleLabel")
 
-        self.t_count = QLabel("2 / 5 Completed")
+        self.t_count = QLabel("3 / 6 Completed")
         self.t_count.setObjectName("badgeActive")
 
         t_header.addWidget(t_title)
@@ -85,78 +97,135 @@ class SummaryTaskWidget(QWidget):
         t_header.addWidget(btn_add)
 
         t_layout.addLayout(t_header)
-        t_layout.addSpacing(12)
 
-        # Task List Container
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
-
+        # Task list layout
         self.tasks_widget = QWidget()
         self.tasks_layout = QVBoxLayout(self.tasks_widget)
         self.tasks_layout.setContentsMargins(0, 0, 0, 0)
-        self.tasks_layout.setSpacing(10)
+        self.tasks_layout.setSpacing(8)
 
         self.render_tasks()
+        t_layout.addWidget(self.tasks_widget)
+        layout.addWidget(task_card)
 
-        scroll.setWidget(self.tasks_widget)
-        t_layout.addWidget(scroll)
+        # 3. Semantic Cross-References (Vector Connections)
+        cross_card = QFrame()
+        cross_card.setObjectName("cardFrame")
+        c_layout = QVBoxLayout(cross_card)
+        c_layout.setContentsMargins(20, 18, 20, 18)
+        c_layout.setSpacing(10)
 
-        main_layout.addWidget(task_card)
+        c_title = QLabel("🔗 Semantic Cross-References (ChromaDB Vector Match)")
+        c_title.setObjectName("titleLabel")
+        c_sub = QLabel("Past voice notes related to this topic based on embedding similarity:")
+        c_sub.setObjectName("subtitleLabel")
+        c_layout.addWidget(c_title)
+        c_layout.addWidget(c_sub)
+
+        cross_refs = [
+            ("Sprint 12 Architecture & Pipeline Planning", "94% Match", "Discussed QThread worker design and SQLite persistence schema.", "#Architecture"),
+            ("VoiceNote SRS & UI Specifications Review", "88% Match", "Defined export dialog formats (PDF, DOCX) and dark slate Bento grid.", "#UI-Design")
+        ]
+
+        for r_title, r_match, r_desc, r_tag in cross_refs:
+            rf = QFrame()
+            rf.setObjectName("glassFrame")
+            rf_lay = QVBoxLayout(rf)
+            rf_lay.setContentsMargins(14, 12, 14, 12)
+            rf_lay.setSpacing(4)
+
+            rf_top = QHBoxLayout()
+            rt = QLabel(r_title)
+            rt.setStyleSheet("color: #FFFFFF; font-weight: 700; font-size: 14px;")
+            
+            rm = QLabel(r_match)
+            rm.setObjectName("badgeCyan")
+            
+            rtag = QLabel(r_tag)
+            rtag.setObjectName("badgePurple")
+
+            rf_top.addWidget(rt)
+            rf_top.addWidget(rm)
+            rf_top.addWidget(rtag)
+            rf_top.addStretch()
+            rf_lay.addLayout(rf_top)
+
+            rd = QLabel(r_desc)
+            rd.setStyleSheet("color: #94A3B8; font-size: 12px;")
+            rf_lay.addWidget(rd)
+
+            c_layout.addWidget(rf)
+
+        layout.addWidget(cross_card)
+
+        scroll.setWidget(container)
+        main_layout.addWidget(scroll)
 
     def render_tasks(self):
         while self.tasks_layout.count():
-            child = self.tasks_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            item = self.tasks_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        completed_count = sum(1 for t in self.tasks if t["done"])
-        self.t_count.setText(f"{completed_count} / {len(self.tasks)} Completed")
+        done_count = sum(1 for t in self.tasks if t["done"])
+        self.t_count.setText(f"{done_count} / {len(self.tasks)} Completed")
 
         for idx, task in enumerate(self.tasks):
-            item_frame = QFrame()
-            item_frame.setObjectName("glassFrame")
-            item_layout = QHBoxLayout(item_frame)
-            item_layout.setContentsMargins(12, 10, 12, 10)
+            t_row = QFrame()
+            t_row.setObjectName("glassFrame")
+            row_lay = QHBoxLayout(t_row)
+            row_lay.setContentsMargins(14, 10, 14, 10)
+            row_lay.setSpacing(12)
 
-            chk = QCheckBox(task["desc"])
+            chk = QCheckBox()
             chk.setChecked(task["done"])
-            chk.toggled.connect(lambda checked, i=idx: self.toggle_task(i, checked))
-            if task["done"]:
-                chk.setStyleSheet("text-decoration: line-through; color: #8C93A4;")
+            chk.stateChanged.connect(lambda state, i=idx: self.toggle_task_done(i, state))
+            row_lay.addWidget(chk)
 
-            item_layout.addWidget(chk, stretch=1)
+            desc_lbl = QLabel(task["desc"])
+            if task["done"]:
+                desc_lbl.setStyleSheet("text-decoration: line-through; color: #64748B;")
+            else:
+                desc_lbl.setStyleSheet("color: #F8FAFC; font-weight: 600;")
+            row_lay.addWidget(desc_lbl, stretch=1)
+
+            # Assignee chip
+            assignee_lbl = QLabel(f"👤 {task['assignee']}")
+            assignee_lbl.setStyleSheet("color: #94A3B8; font-size: 11px; font-weight: 600;")
+            row_lay.addWidget(assignee_lbl)
+
+            # Due Date chip
+            date_lbl = QLabel(f"📅 {task['date']}")
+            date_lbl.setStyleSheet("color: #64748B; font-size: 11px;")
+            row_lay.addWidget(date_lbl)
 
             # Priority Badge
-            p_lbl = QLabel(task["priority"])
+            p_badge = QLabel(task["priority"])
             if task["priority"] == "HIGH":
-                p_lbl.setObjectName("badgeActive")
-                p_lbl.setStyleSheet("background-color: #FCE8EC; color: #E05A77; border: 1px solid #F5B0C0; border-radius: 0px; padding: 2px 6px; font-weight: 700;")
+                p_badge.setObjectName("badgeRose")
             elif task["priority"] == "MEDIUM":
-                p_lbl.setObjectName("badgeAmber")
+                p_badge.setObjectName("badgeAmber")
             else:
-                p_lbl.setObjectName("badgeCyan")
-            
-            item_layout.addWidget(p_lbl)
+                p_badge.setObjectName("badgeActive")
 
-            # Assignee
-            a_lbl = QLabel(task['assignee'])
-            a_lbl.setStyleSheet("color: #5C6479; font-size: 11px; font-weight: 600;")
-            item_layout.addWidget(a_lbl)
+            row_lay.addWidget(p_badge)
+            self.tasks_layout.addWidget(t_row)
 
-            self.tasks_layout.addWidget(item_frame)
-
-    def toggle_task(self, idx: int, checked: bool):
-        self.tasks[idx]["done"] = checked
+    def toggle_task_done(self, idx: int, state: int):
+        self.tasks[idx]["done"] = bool(state)
         self.render_tasks()
 
     def add_task_dialog(self):
-        text, ok = QInputDialog.getText(self, "Add Task", "Enter action item description:")
+        text, ok = QInputDialog.getText(self, "Add Action Item", "Enter task description:")
         if ok and text.strip():
             self.tasks.append({
                 "desc": text.strip(),
-                "priority": "MEDIUM",
+                "priority": "HIGH",
                 "assignee": "Samar",
-                "done": False
+                "done": False,
+                "date": "Today"
             })
             self.render_tasks()
+
+    def reanalyze(self):
+        QMessageBox.information(self, "AI Analysis", "AI summary and action item extractor successfully refreshed.")

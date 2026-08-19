@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class AnalyticsDashboardWidget(QWidget):
-    """Analytics Dashboard UI Component for usage metrics & insights - Retro Cream Theme."""
+    """Analytics Dashboard UI Component for usage metrics & insights - Modern Dark Theme."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,49 +15,47 @@ class AnalyticsDashboardWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Scroll Area container so all metrics fit comfortably on all display sizes
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("QScrollArea { border: none; background-color: #ECE7DF; }")
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
         container = QWidget()
-        container.setStyleSheet("background-color: #ECE7DF;")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
 
         # Header Title
-        title = QLabel("Voice Note Analytics & Insights")
+        title = QLabel("📊 Voice Note Analytics & AI Productivity Insights")
         title.setObjectName("titleLabel")
-        subtitle = QLabel("Overview of your recording duration trends, AI processing metrics, and task completion performance.")
+        subtitle = QLabel("Overview of your recording duration trends, AI summarization metrics, and action item completion rates.")
         subtitle.setObjectName("subtitleLabel")
         layout.addWidget(title)
         layout.addWidget(subtitle)
 
         # Metric Summary Cards Grid
         grid = QGridLayout()
-        grid.setSpacing(14)
+        grid.setSpacing(12)
 
         metrics = [
             ("Total Voice Notes", "48", "+12 this week", "badgePurple"),
-            ("Total Recording Time", "14h 25m", "Avg 18m / note", "badgeCyan"),
+            ("Total Audio Processed", "14h 25m", "Avg 18m / note", "badgeCyan"),
             ("Task Completion Rate", "82%", "37 of 45 completed", "badgeActive"),
-            ("Local AI Time Saved", "~12.5 hrs", "Whisper + Ollama", "badgeAmber"),
+            ("Local AI Time Saved", "~12.5 hrs", "Whisper + Gemini", "badgeAmber"),
         ]
 
         for i, (m_title, m_val, m_sub, badge_cls) in enumerate(metrics):
             card = QFrame()
             card.setObjectName("cardFrame")
-            card.setMinimumHeight(115)
+            card.setMinimumHeight(105)
             c_lay = QVBoxLayout(card)
             c_lay.setContentsMargins(18, 16, 18, 16)
-            c_lay.setSpacing(6)
+            c_lay.setSpacing(4)
 
             t_lbl = QLabel(m_title)
-            t_lbl.setStyleSheet("color: #5C6479; font-size: 13px; font-weight: 700;")
+            t_lbl.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: 700;")
             
             val_lbl = QLabel(m_val)
-            val_lbl.setStyleSheet("color: #1E2B4B; font-size: 26px; font-weight: 900; line-height: 1.2;")
+            val_lbl.setStyleSheet("color: #FFFFFF; font-size: 24px; font-weight: 900;")
 
             badge_row = QHBoxLayout()
             b_lbl = QLabel(m_sub)
@@ -78,12 +76,12 @@ class AnalyticsDashboardWidget(QWidget):
         act_card = QFrame()
         act_card.setObjectName("cardFrame")
         a_lay = QVBoxLayout(act_card)
-        a_lay.setContentsMargins(20, 20, 20, 20)
+        a_lay.setContentsMargins(20, 18, 20, 18)
+        a_lay.setSpacing(10)
 
-        a_title = QLabel("Weekly Recording Activity (Minutes / Day)")
-        a_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #1E2B4B;")
+        a_title = QLabel("📈 Weekly Audio Capture Activity (Minutes / Day)")
+        a_title.setStyleSheet("font-size: 14px; font-weight: 800; color: #FFFFFF;")
         a_lay.addWidget(a_title)
-        a_lay.addSpacing(12)
 
         days = [
             ("Mon", 45, 60),
@@ -99,15 +97,15 @@ class AnalyticsDashboardWidget(QWidget):
             d_row = QHBoxLayout()
             d_lbl = QLabel(day)
             d_lbl.setFixedWidth(40)
-            d_lbl.setStyleSheet("font-weight: 700; color: #1E2B4B;")
+            d_lbl.setStyleSheet("font-weight: 700; color: #E2E8F0;")
 
             p_bar = QProgressBar()
             p_bar.setRange(0, max_val)
             p_bar.setValue(val)
 
             v_lbl = QLabel(f"{val}m")
-            v_lbl.setFixedWidth(40)
-            v_lbl.setStyleSheet("color: #5C6479; font-size: 12px; font-weight: 600;")
+            v_lbl.setFixedWidth(45)
+            v_lbl.setStyleSheet("color: #818CF8; font-size: 12px; font-weight: 600; font-family: monospace;")
 
             d_row.addWidget(d_lbl)
             d_row.addWidget(p_bar, stretch=1)
@@ -121,18 +119,18 @@ class AnalyticsDashboardWidget(QWidget):
         tag_card = QFrame()
         tag_card.setObjectName("cardFrame")
         t_lay = QVBoxLayout(tag_card)
-        t_lay.setContentsMargins(20, 20, 20, 20)
+        t_lay.setContentsMargins(20, 18, 20, 18)
+        t_lay.setSpacing(10)
 
-        t_title = QLabel("Top Tag Breakdown")
-        t_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #1E2B4B;")
+        t_title = QLabel("🏷️ Topic & Category Distribution")
+        t_title.setStyleSheet("font-size: 14px; font-weight: 800; color: #FFFFFF;")
         t_lay.addWidget(t_title)
-        t_lay.addSpacing(10)
 
         tags_data = [
             ("#Sprint-Planning", 18),
             ("#Architecture", 14),
             ("#Meeting-Notes", 10),
-            ("#Ollama-AI", 6)
+            ("#Gemini-AI", 6)
         ]
 
         for tag, count in tags_data:
@@ -141,7 +139,7 @@ class AnalyticsDashboardWidget(QWidget):
             t_lbl.setObjectName("badgePurple")
             
             c_lbl = QLabel(f"{count} Notes")
-            c_lbl.setStyleSheet("color: #5C6479; font-size: 12px; font-weight: 600;")
+            c_lbl.setStyleSheet("color: #94A3B8; font-size: 12px; font-weight: 600;")
             
             tr_row.addWidget(t_lbl)
             tr_row.addStretch()

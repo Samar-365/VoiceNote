@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 class NoteCard(QFrame):
-    """Card widget representing a single Voice Note item - Retro Cream Theme."""
+    """Card widget representing a single Voice Note item - Modern Dark Bento Theme."""
     view_clicked = Signal(str)
     export_clicked = Signal(str)
 
@@ -16,22 +16,22 @@ class NoteCard(QFrame):
 
     def init_ui(self, title, date, duration, summary, tags):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(8)
+        layout.setContentsMargins(18, 16, 18, 16)
+        layout.setSpacing(10)
 
         # Header Row
         top_row = QHBoxLayout()
         t_lbl = QLabel(title)
-        t_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #1E2B4B;")
+        t_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #FFFFFF;")
         
-        dur_lbl = QLabel(f"Duration: {duration}")
-        dur_lbl.setStyleSheet("color: #6D59A7; font-weight: 700; font-size: 12px;")
+        dur_badge = QLabel(f"⏱️ {duration}")
+        dur_badge.setObjectName("badgeCyan")
 
         date_lbl = QLabel(date)
-        date_lbl.setStyleSheet("color: #8C93A4; font-size: 12px;")
+        date_lbl.setStyleSheet("color: #64748B; font-size: 12px; font-weight: 600;")
 
         top_row.addWidget(t_lbl)
-        top_row.addWidget(dur_lbl)
+        top_row.addWidget(dur_badge)
         top_row.addStretch()
         top_row.addWidget(date_lbl)
 
@@ -40,7 +40,7 @@ class NoteCard(QFrame):
         # Summary Snippet
         sum_lbl = QLabel(summary)
         sum_lbl.setWordWrap(True)
-        sum_lbl.setStyleSheet("color: #5C6479; font-size: 13px; line-height: 1.4;")
+        sum_lbl.setStyleSheet("color: #94A3B8; font-size: 13px; line-height: 1.5;")
         layout.addWidget(sum_lbl)
 
         # Footer Row (Tags & Action Buttons)
@@ -52,13 +52,13 @@ class NoteCard(QFrame):
 
         bottom_row.addStretch()
 
-        btn_export = QPushButton("Export")
-        btn_export.setStyleSheet("padding: 4px 10px; font-size: 11px; background: #FFFFFF; color: #1E2B4B; border: 1px solid #E2DDD3;")
+        btn_export = QPushButton("📤 Export")
+        btn_export.setStyleSheet("padding: 5px 12px; font-size: 11px; background-color: #1E293B; border: 1px solid #334155; color: #F8FAFC;")
         btn_export.clicked.connect(lambda: self.export_clicked.emit(self.note_title))
 
-        btn_view = QPushButton("View Note")
+        btn_view = QPushButton("👁️ View & Edit")
         btn_view.setObjectName("primaryBtn")
-        btn_view.setStyleSheet("padding: 4px 12px; font-size: 11px;")
+        btn_view.setStyleSheet("padding: 5px 14px; font-size: 11px;")
         btn_view.clicked.connect(lambda: self.view_clicked.emit(self.note_title))
 
         bottom_row.addWidget(btn_export)
