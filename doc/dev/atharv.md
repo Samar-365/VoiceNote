@@ -11,3 +11,9 @@
 - **2026-08-18** | **Task:** Integrated and tested the AI processing pipeline with Gemini, including transcript processing and pipeline validation.| **Path:** `voicenote/core/ai_engine.py`
 
 - **2026-08-18** | **Task:** Added/updated pipeline test to verify the complete STT → AI processing workflow. | **Path:** `tests/test_pipeline.py`
+
+- **2026-08-19** | **Task:** Implemented ChromaDB-based VectorEngine with semantic search and timestamp-aware transcript indexing | **Path:** `voicenote/core/vector_engine.py` |
+
+- **2026-08-19** | **Task:** Added VectorEngine tests and integrated timestamped semantic search into the STT → Gemini pipeline | **Path:** `tests/test_vector_engine.py`, `tests/test_pipeline.py` |
+
+- **2026-08-19** | **Task:** Updated project dependencies and verified the complete test suite with 13/13 tests passing | **Path:** `requirements.txt` |
