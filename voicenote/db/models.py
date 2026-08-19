@@ -42,3 +42,15 @@ class Task:
     assignee: str = "Unassigned"
     due_date: str = "TBD"
     status: str = "Pending"  # Pending, In Progress, Completed
+
+
+@dataclass
+class User:
+    id: Optional[int] = None
+    username: str = ""
+    email: str = ""
+    password_hash: str = ""
+    full_name: str = "VoiceNote User"
+    created_at: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    avatar_url: Optional[str] = None
+

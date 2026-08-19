@@ -18,8 +18,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 RECORDINGS_DIR = DATA_DIR / "recordings"
 
-# Database Configuration (PostgreSQL Engine)
-DB_ENGINE = os.getenv("DB_ENGINE", "postgres").lower()
+# Database Configuration (Strictly PostgreSQL Engine)
+DB_ENGINE = "postgres"
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
 POSTGRES_DB = os.getenv("POSTGRES_DB", "voicenote")
