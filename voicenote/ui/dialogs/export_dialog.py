@@ -1,13 +1,13 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QCheckBox, QRadioButton, QButtonGroup, QLineEdit, QFileDialog, QFrame
+    QCheckBox, QRadioButton, QButtonGroup, QFrame
 )
 from PySide6.QtCore import Qt
 
 class ExportDialog(QDialog):
-    """Dialog preview for exporting notes to PDF, DOCX, or TXT formats."""
+    """Dialog preview for exporting notes to PDF, DOCX, or TXT formats - Retro Cream Theme."""
 
-    def __init__(self, note_title="Sprint Planning & Architecture", parent=None):
+    def __init__(self, note_title="Sprint Planning & Local AI Architecture", parent=None):
         super().__init__(parent)
         self.setWindowTitle("Export Voice Note")
         self.setFixedSize(480, 420)
@@ -23,7 +23,7 @@ class ExportDialog(QDialog):
         title.setStyleSheet("font-size: 18px; font-weight: 800; color: #1E2B4B;")
         
         target = QLabel(f"Exporting: <b>{self.note_title}</b>")
-        target.setStyleSheet("color: #94A3B8; font-size: 13px;")
+        target.setStyleSheet("color: #5C6479; font-size: 13px;")
 
         layout.addWidget(title)
         layout.addWidget(target)

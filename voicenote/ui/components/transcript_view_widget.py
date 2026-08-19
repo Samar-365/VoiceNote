@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QTextEdit, QFrame, QScrollArea, QDialog, QInputDialog
+    QLineEdit, QTextEdit, QFrame, QInputDialog, QMessageBox, QApplication
 )
 from PySide6.QtCore import Qt
 
 class TranscriptViewWidget(QWidget):
-    """Transcript Viewer & Tag Manager UI Component - Retro Cream Theme."""
+    """Transcript Viewer & Tag Manager UI Component - Retro Cream Theme matching assets/transcript.png."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -22,6 +22,7 @@ class TranscriptViewWidget(QWidget):
         card.setObjectName("cardFrame")
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setSpacing(12)
 
         top_row = QHBoxLayout()
         title_v = QVBoxLayout()
@@ -39,15 +40,18 @@ class TranscriptViewWidget(QWidget):
 
         # Action Buttons
         btn_copy = QPushButton("Copy Text")
+        btn_copy.setStyleSheet("background-color: #F8F6F0; border: 1px solid #E5E0D6; font-weight: 700; color: #4A3980;")
         btn_copy.clicked.connect(self.copy_transcript)
         top_row.addWidget(btn_copy)
 
         card_layout.addLayout(top_row)
-        card_layout.addSpacing(10)
+        card_layout.addSpacing(6)
 
         # Tag Manager Row
         tag_row = QHBoxLayout()
-        tag_row.addWidget(QLabel("Tags:"))
+        tag_lbl = QLabel("Tags:")
+        tag_lbl.setStyleSheet("color: #1E2B4B; font-weight: 600;")
+        tag_row.addWidget(tag_lbl)
 
         self.tags_container = QHBoxLayout()
         self.render_tags()
@@ -72,7 +76,7 @@ class TranscriptViewWidget(QWidget):
 
         # Main Transcript Text Display Panel
         self.transcript_edit = QTextEdit()
-        self.transcript_edit.setReadOnly(True)
+        self.transcript_edit.setReadOnly(False)
         self.load_sample_transcript()
 
         layout.addWidget(self.transcript_edit)
@@ -98,52 +102,36 @@ class TranscriptViewWidget(QWidget):
             self.render_tags()
 
     def copy_transcript(self):
-        self.transcript_edit.selectAll()
-        self.transcript_edit.copy()
-        cursor = self.transcript_edit.textCursor()
-        cursor.clearSelection()
-        self.transcript_edit.setTextCursor(cursor)
+        QApplication.clipboard().setText(self.transcript_edit.toPlainText())
+        QMessageBox.information(self, "Copied", "Full transcript text copied to clipboard.")
 
-    def filter_transcript(self, query: str):
-        pass
+    def filter_transcript(self, text: str):
+        if not text.strip():
+            self.load_sample_transcript()
+            return
+        
+        full_text = self.sample_full_html()
+        # Filter paragraphs
+        lines = [
+            "[00:00:02] Samar: Alright team, welcome to the VoiceNote Desktop architecture review. Our main goal today is finalizing the home screen UI and validating our local AI strategy.",
+            "[00:00:15] Lead Engineer: Exactly. We are sticking strictly to local components: faster-whisper for speech-to-text, Ollama running Llama 3 for intelligent summarization and task extraction, and PostgreSQL for note metadata.",
+            "[00:00:34] AI Architect: Also, for semantic search across all voice notes, we'll embed the transcripts using ChromaDB vector store. That way, natural language queries like 'find our discussion on database migration' will instantly return relevant timestamped audio clips.",
+            "[00:01:10] Samar: Awesome. Let's make sure the PySide6 UI feels super fast, responsive, and elegant. No lag during Whisper transcription because all STT and Ollama calls run in background QThreads.",
+            "[00:01:45] QA Lead: Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?",
+            "[00:02:10] Samar: Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options."
+        ]
+        filtered = [l for l in lines if text.lower() in l.lower()]
+        self.transcript_edit.setPlainText("\n\n".join(filtered) if filtered else "No matching dialogue found.")
+
+    def sample_full_html(self) -> str:
+        return """<p style='line-height: 1.8; color: #1E2B4B;'>
+<b style='color: #6D59A7;'>[00:00:02] Samar:</b> Alright team, welcome to the VoiceNote Desktop architecture review. Our main goal today is finalizing the home screen UI and validating our local AI strategy.<br><br>
+<b style='color: #6D59A7;'>[00:00:15] Lead Engineer:</b> Exactly. We are sticking strictly to local components: faster-whisper for speech-to-text, Ollama running Llama 3 for intelligent summarization and task extraction, and PostgreSQL for note metadata.<br><br>
+<b style='color: #6D59A7;'>[00:00:34] AI Architect:</b> Also, for semantic search across all voice notes, we'll embed the transcripts using ChromaDB vector store. That way, natural language queries like 'find our discussion on database migration' will instantly return relevant timestamped audio clips.<br><br>
+<b style='color: #6D59A7;'>[00:01:10] Samar:</b> <span style='color: #D97706; font-weight: bold;'>Awesome. Let's make sure the PySide6 UI feels super fast, responsive, and elegant. No lag during Whisper transcription because all STT and Ollama calls run in background QThreads.</span><br><br>
+<b style='color: #6D59A7;'>[00:01:45] QA Lead:</b> Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?<br><br>
+<b style='color: #6D59A7;'>[00:02:10] Samar:</b> Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options.
+</p>"""
 
     def load_sample_transcript(self):
-        sample_html = """
-        <style>
-            .time { color: #6D59A7; font-weight: bold; font-family: monospace; }
-            .speaker { color: #1E2B4B; font-weight: bold; }
-            .p { margin-bottom: 12px; font-size: 14px; line-height: 1.6; color: #1E2B4B; }
-            .highlight { background-color: #FEF6E6; color: #D97706; padding: 2px 4px; border-radius: 0px; font-weight: 600; }
-        </style>
-        
-        <div class="p">
-            <span class="time">[00:00:02]</span> <span class="speaker">Samar:</span> 
-            Alright team, welcome to the VoiceNote Desktop architecture review. Our main goal today is finalizing the home screen UI and validating our local AI strategy.
-        </div>
-
-        <div class="p">
-            <span class="time">[00:00:15]</span> <span class="speaker">Lead Engineer:</span> 
-            Exactly. We are sticking strictly to local components: faster-whisper for speech-to-text, Ollama running Llama 3 for intelligent summarization and task extraction, and PostgreSQL for note metadata.
-        </div>
-
-        <div class="p">
-            <span class="time">[00:00:34]</span> <span class="speaker">AI Architect:</span> 
-            Also, for semantic search across all voice notes, we'll embed the transcripts using ChromaDB vector store. That way, natural language queries like 'find our discussion on database migration' will instantly return relevant timestamped audio clips.
-        </div>
-
-        <div class="p">
-            <span class="time">[00:01:10]</span> <span class="speaker">Samar:</span> 
-            <span class="highlight">Awesome. Let's make sure the PySide6 UI feels super fast, responsive, and elegant. No lag during Whisper transcription because all STT and Ollama calls run in background QThreads.</span>
-        </div>
-
-        <div class="p">
-            <span class="time">[00:01:45]</span> <span class="speaker">QA Lead:</span> 
-            Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?
-        </div>
-
-        <div class="p">
-            <span class="time">[00:02:10]</span> <span class="speaker">Samar:</span> 
-            Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options.
-        </div>
-        """
-        self.transcript_edit.setHtml(sample_html)
+        self.transcript_edit.setHtml(self.sample_full_html())
