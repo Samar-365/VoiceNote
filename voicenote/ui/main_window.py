@@ -5,6 +5,9 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 
+from voicenote.config import APP_NAME, APP_SUBTITLE, VERSION
+from voicenote.db.database import get_db
+from voicenote.services.worker import PipelineWorker
 from voicenote.ui.styles import MAIN_STYLE
 from voicenote.ui.components.sidebar import SidebarWidget
 from voicenote.ui.components.header import HeaderWidget
@@ -22,10 +25,13 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("VoiceNote Desktop - AI-Powered Local Voice Intelligence")
+        self.setWindowTitle(f"{APP_NAME} Desktop - AI-Powered Local Voice Intelligence")
         self.resize(1280, 840)
         self.setMinimumSize(1024, 700)
         self.setStyleSheet(MAIN_STYLE)
+        
+        self.db = get_db()
+        self.worker = None
         self.init_ui()
 
     def init_ui(self):
@@ -85,7 +91,7 @@ class MainWindow(QMainWindow):
         # Status Bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("VoiceNote Desktop v0.1.0 • All Local AI Services Active (Whisper, Ollama, Postgres, ChromaDB)")
+        self.status_bar.showMessage(f"{APP_NAME} v{VERSION} • Database Connected • Local & Cloud AI Pipeline Ready")
 
     def create_home_view(self) -> QWidget:
         """Create the main Home View containing Quick Stats, Live Audio Recorder, and Recent Notes."""
@@ -94,19 +100,22 @@ class MainWindow(QMainWindow):
         scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
 
         container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        self.home_layout = QVBoxLayout(container)
+        self.home_layout.setContentsMargins(0, 0, 0, 0)
+        self.home_layout.setSpacing(16)
 
         # A. Quick Overview Stat Cards Row
         stats_row = QHBoxLayout()
         stats_row.setSpacing(12)
 
+        total_notes = self.db.get_note_count() if self.db else 24
+        tasks_count = len(self.db.get_all_tasks()) if self.db else 5
+
         stats_data = [
-            ("Total Voice Notes", "24 Notes", "+4 Today", "badgePurple"),
-            ("Recorded Audio", "4h 32m", "Avg 11m/note", "badgeCyan"),
-            ("Pending Tasks", "5 Pending", "18 Completed", "badgeAmber"),
-            ("Local AI Privacy", "100% Offline", "Zero Cloud", "badgeActive"),
+            ("Total Voice Notes", f"{total_notes} Notes", "+3 Today", "badgePurple"),
+            ("Recorded Audio", "15m 27s", "Avg 5m/note", "badgeCyan"),
+            ("Pending Tasks", f"{tasks_count} Tasks", "Active", "badgeAmber"),
+            ("Local AI Privacy", "Active", "Whisper & Gemini", "badgeActive"),
         ]
 
         for title, val, sub, badge_cls in stats_data:
@@ -130,12 +139,12 @@ class MainWindow(QMainWindow):
 
             stats_row.addWidget(card)
 
-        layout.addLayout(stats_row)
+        self.home_layout.addLayout(stats_row)
 
         # B. Live Audio Recorder Component
         self.recorder_widget = AudioRecorderWidget()
         self.recorder_widget.transcription_requested.connect(self.on_new_recording_finished)
-        layout.addWidget(self.recorder_widget)
+        self.home_layout.addWidget(self.recorder_widget)
 
         # C. Recent Voice Notes List
         recent_header = QHBoxLayout()
@@ -150,47 +159,67 @@ class MainWindow(QMainWindow):
         recent_header.addStretch()
         recent_header.addWidget(btn_view_all)
 
-        layout.addLayout(recent_header)
+        self.home_layout.addLayout(recent_header)
 
-        # Sample recent notes matching assets/home.png
-        sample_notes = [
-            {
-                "title": "Sprint Planning & Local AI Architecture",
-                "date": "Today, 02:30 PM",
-                "duration": "04m 32s",
-                "summary": "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, and ChromaDB vector store integration.",
-                "tags": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"]
-            },
-            {
-                "title": "PostgreSQL Schema & Persistence Review",
-                "date": "Yesterday, 04:15 PM",
-                "duration": "12m 40s",
-                "summary": "Reviewed user profiles, transcript relational tables, tag associations, and SQLAlchemy model migrations.",
-                "tags": ["#PostgreSQL", "#Database"]
-            },
-            {
-                "title": "Task Extraction & AI Prompt Formatting",
-                "date": "Aug 12, 11:00 AM",
-                "duration": "08m 15s",
-                "summary": "Defined JSON structured outputs for Ollama task extraction, priority categorization, and assignee mapping.",
-                "tags": ["#Tasks", "#Ollama-AI", "#High-Priority"]
-            }
-        ]
+        # Populate from database
+        self.notes_container = QVBoxLayout()
+        self.notes_container.setSpacing(12)
+        self.home_layout.addLayout(self.notes_container)
 
-        for note in sample_notes:
-            card = NoteCard(
-                title=note["title"],
-                date=note["date"],
-                duration=note["duration"],
-                summary=note["summary"],
-                tags=note["tags"]
-            )
-            card.view_clicked.connect(self.on_view_note)
-            card.export_clicked.connect(self.on_export_note)
-            layout.addWidget(card)
+        self.refresh_notes_list()
 
         scroll.setWidget(container)
         return scroll
+
+    def refresh_notes_list(self):
+        """Fetch notes from database and render NoteCards."""
+        while self.notes_container.count():
+            child = self.notes_container.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        db_notes = self.db.get_all_notes() if self.db else []
+        if not db_notes:
+            # Display sample notes if database is empty
+            db_notes = [
+                {
+                    "title": "Sprint Planning & Local AI Architecture",
+                    "created_at": "Today, 02:30 PM",
+                    "duration": "04m 32s",
+                    "summary": "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, and ChromaDB vector store integration.",
+                    "main_topics": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"]
+                },
+                {
+                    "title": "PostgreSQL Schema & Persistence Review",
+                    "created_at": "Yesterday, 04:15 PM",
+                    "duration": "12m 40s",
+                    "summary": "Reviewed user profiles, transcript relational tables, tag associations, and SQLAlchemy model migrations.",
+                    "main_topics": ["#PostgreSQL", "#Database"]
+                },
+                {
+                    "title": "Task Extraction & AI Prompt Formatting",
+                    "created_at": "Aug 12, 11:00 AM",
+                    "duration": "08m 15s",
+                    "summary": "Defined JSON structured outputs for Ollama task extraction, priority categorization, and assignee mapping.",
+                    "main_topics": ["#Tasks", "#Ollama-AI", "#High-Priority"]
+                }
+            ]
+
+        for note in db_notes:
+            tags = note.get("main_topics", ["#VoiceNote"])
+            if isinstance(tags, list):
+                tags = [f"#{t}" if not t.startswith("#") else t for t in tags]
+
+            card = NoteCard(
+                title=note.get("title", "Untitled Note"),
+                date=note.get("created_at", "Today"),
+                duration=note.get("duration", "00:00"),
+                summary=note.get("summary", "No AI summary available."),
+                tags=tags if tags else ["#VoiceNote"]
+            )
+            card.view_clicked.connect(self.on_view_note)
+            card.export_clicked.connect(self.on_export_note)
+            self.notes_container.addWidget(card)
 
     def switch_view(self, index: int):
         self.stack.setCurrentIndex(index)
@@ -221,9 +250,26 @@ class MainWindow(QMainWindow):
         dialog = ProfileDialog(parent=self)
         dialog.exec()
 
-    def on_new_recording_finished(self, name: str):
+    def on_new_recording_finished(self, raw_text_or_path: str):
+        self.status_bar.showMessage("Processing Audio & Generating Gemini AI Summary...")
+        
+        # Start PipelineWorker background thread
+        title_snip = raw_text_or_path[:20] if raw_text_or_path else "Recording"
+        self.worker = PipelineWorker(raw_transcript=raw_text_or_path, title=f"Voice Note ({title_snip}...)")
+        self.worker.progress.connect(lambda msg: self.status_bar.showMessage(msg))
+        self.worker.finished.connect(self.on_pipeline_success)
+        self.worker.error.connect(self.on_pipeline_error)
+        self.worker.start()
+
+    def on_pipeline_success(self, data: dict):
+        self.status_bar.showMessage("AI Processing Complete • Saved to Database")
+        self.refresh_notes_list()
         QMessageBox.information(
-            self, "Transcription Complete",
-            "Whisper speech recognition & Ollama AI summary processing completed successfully!\n\nNote added to your dashboard."
+            self, "Pipeline Complete",
+            f"Speech transcription & Gemini AI analysis completed for note:\n\n'{data.get('title', 'Voice Note')}'"
         )
         self.sidebar.on_nav_click(1)
+
+    def on_pipeline_error(self, err_msg: str):
+        self.status_bar.showMessage("Error processing voice note.")
+        QMessageBox.critical(self, "Processing Error", f"Failed to process recording:\n\n{err_msg}")

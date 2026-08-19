@@ -1,8 +1,12 @@
+import os
+import pytest
 from voicenote.core.ai_engine import AIEngine
 
 
 def test_generate():
-    """Test basic communication with Ollama."""
+    """Test basic communication with Gemini LLM."""
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY is not set.")
 
     ai = AIEngine()
 
@@ -16,6 +20,8 @@ def test_generate():
 
 def test_analyze_transcript():
     """Test transcript analysis."""
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY is not set.")
 
     ai = AIEngine()
 
@@ -51,9 +57,10 @@ def test_analyze_transcript():
 
 def test_multilingual_transcript():
     """Test multilingual transcript normalization."""
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY is not set.")
 
     ai = AIEngine()
-
     transcript = """
     माजे नाओ अत्रवा हैं, माजे शालेच नाओ गुरुकोल असे हैं,
     माजे शालेची इमारात अत्यंत हवेशिर आणि स्वच्चा हैं.
@@ -92,6 +99,8 @@ def test_multilingual_transcript():
 
 def test_empty_prompt():
     """Test that empty prompts are rejected."""
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY is not set.")
 
     ai = AIEngine()
 
@@ -105,6 +114,8 @@ def test_empty_prompt():
 
 def test_empty_transcript():
     """Test that empty transcripts are rejected."""
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("GEMINI_API_KEY is not set.")
 
     ai = AIEngine()
 
