@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 import logging
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -16,6 +18,7 @@ class AudioRecorderWidget(QWidget):
         super().__init__(parent)
         self.seconds_elapsed = 0
         self.is_paused = False
+        self.active_audio_payload = "Live Voice Recording"
         self.init_ui()
 
     def init_ui(self):
@@ -189,6 +192,7 @@ class AudioRecorderWidget(QWidget):
 
     def stop_recording(self):
         total_time = self.timer_label.text()
+        self.active_audio_payload = f"Voice Recording ({total_time})"
         logger.info(f"Audio recording stopped permanently. Total duration: {total_time}. Sending to processing pipeline...")
         
         # 1. Halt all recording activities
@@ -217,14 +221,14 @@ class AudioRecorderWidget(QWidget):
         QTimer.singleShot(2200, self.finish_processing)
 
     def finish_processing(self):
-        logger.info("Speech transcription and summarization ready.")
+        logger.info(f"Speech transcription and summarization ready for: '{self.active_audio_payload}'.")
         self.progress_box.hide()
         self.status_badge.setText("IDLE")
         self.status_badge.setObjectName("badgeActive")
         self.status_badge.style().unpolish(self.status_badge)
         self.status_badge.style().polish(self.status_badge)
         self.btn_record.setEnabled(True)
-        self.transcription_requested.emit("New Recording Session")
+        self.transcription_requested.emit(self.active_audio_payload)
 
     def update_timer(self):
         self.seconds_elapsed += 1
@@ -233,10 +237,26 @@ class AudioRecorderWidget(QWidget):
         self.timer_label.setText(f"{hrs:02d}:{mins:02d}:{secs:02d}")
 
     def browse_audio_file(self):
+        logger.info("Opening system audio file picker dialog...")
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Select Audio File", "", "Audio Files (*.wav *.mp3 *.m4a *.mp4)"
         )
         if file_path:
-            logger.info(f"Selected audio file for processing: {file_path}")
+            file_name = Path(file_path).name
+            file_ext = Path(file_path).suffix.upper()
+            try:
+                file_size_kb = round(os.path.getsize(file_path) / 1024, 1)
+            except Exception:
+                file_size_kb = "N/A"
+            
+            self.active_audio_payload = file_path
+            logger.info(f"Imported audio file: '{file_name}' (Format: {file_ext}, Size: {file_size_kb} KB, Path: {file_path}). Sending to STT pipeline...")
+            
+            self.status_badge.setText("PROCESSING")
+            self.status_badge.setObjectName("badgePurple")
+            self.status_badge.style().unpolish(self.status_badge)
+            self.status_badge.style().polish(self.status_badge)
             self.progress_box.show()
             QTimer.singleShot(2000, self.finish_processing)
+        else:
+            logger.info("Audio file import cancelled by user.")
