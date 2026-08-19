@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 class HeaderWidget(QFrame):
-    """Header Bar Component with Omni-Search & AI Pipeline Status."""
+    """Header Bar Component displaying status indicators & user avatar matching assets/."""
     profile_clicked = Signal()
     search_triggered = Signal(str)
 
@@ -21,31 +21,31 @@ class HeaderWidget(QFrame):
 
         # Global Quick Search LineEdit
         self.search_bar = QLineEdit()
-        self.search_bar.setPlaceholderText("🔍  Search notes, transcripts, or ask AI... (Ctrl+K)")
-        self.search_bar.setFixedWidth(360)
+        self.search_bar.setPlaceholderText("Search notes, transcripts, or tasks...")
+        self.search_bar.setFixedWidth(320)
         self.search_bar.returnPressed.connect(lambda: self.search_triggered.emit(self.search_bar.text()))
         layout.addWidget(self.search_bar)
 
         layout.addStretch()
 
         # Engine Status Indicators
-        st_whisper = QLabel("🟢 Whisper STT: Ready")
-        st_whisper.setObjectName("badgeActive")
+        st_ollama = QLabel("Ollama: llama3:8b")
+        st_ollama.setObjectName("badgePurple")
         
-        st_chroma = QLabel("🔵 ChromaDB: Synced")
-        st_chroma.setObjectName("badgeCyan")
+        st_whisper = QLabel("Whisper: Small.en")
+        st_whisper.setObjectName("badgePurple")
 
-        st_gemini = QLabel("🟣 Gemini / Ollama: Active")
-        st_gemini.setObjectName("badgePurple")
+        st_db = QLabel("Postgres: Online")
+        st_db.setObjectName("badgeActive")
 
+        layout.addWidget(st_ollama)
         layout.addWidget(st_whisper)
-        layout.addWidget(st_chroma)
-        layout.addWidget(st_gemini)
+        layout.addWidget(st_db)
 
-        layout.addSpacing(8)
+        layout.addSpacing(12)
 
         # User Profile Avatar Button
-        btn_profile = QPushButton("👤 Samar S. (Admin)")
+        btn_profile = QPushButton("Samar (Admin)")
         btn_profile.setObjectName("primaryBtn")
         btn_profile.clicked.connect(self.profile_clicked.emit)
         layout.addWidget(btn_profile)
