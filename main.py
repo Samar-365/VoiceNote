@@ -11,7 +11,10 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
 
 from voicenote.config import APP_NAME, VERSION
-from voicenote.db.database import get_db
+try:
+    from voicenote.db.database import get_db
+except Exception:
+    get_db = None
 from voicenote.ui.main_window import MainWindow
 
 # Configure immediate, unbuffered standard output logging

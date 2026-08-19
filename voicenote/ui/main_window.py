@@ -6,8 +6,15 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 
 from voicenote.config import APP_NAME, APP_SUBTITLE, VERSION
-from voicenote.db.database import get_db
-from voicenote.services.worker import PipelineWorker
+try:
+    from voicenote.db.database import get_db
+except Exception:
+    get_db = lambda: None
+
+try:
+    from voicenote.services.worker import PipelineWorker
+except Exception:
+    PipelineWorker = None
 from voicenote.ui.styles import MAIN_STYLE
 from voicenote.ui.components.sidebar import SidebarWidget
 from voicenote.ui.components.header import HeaderWidget
