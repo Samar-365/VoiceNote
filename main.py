@@ -39,18 +39,14 @@ def main():
     app.setApplicationVersion(VERSION)
     app.setOrganizationName("VoiceNote")
 
-    # High DPI Scaling Policy
-    if hasattr(Qt, "AA_EnableHighDpiScaling"):
-        app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    if hasattr(Qt, "AA_UseHighDpiPixmaps"):
-        app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
-
-    # 2. Initialize Database Connection & Migrations
-    try:
-        db = get_db()
-        logger.info(f"Database initialized successfully ({db.get_note_count()} notes loaded).")
-    except Exception as db_err:
-        logger.error(f"Failed to initialize database: {db_err}")
+    # 2. Initialize Database Connection & Migrations (if available)
+    if callable(get_db):
+        try:
+            db = get_db()
+            if db:
+                logger.info(f"Database initialized successfully ({db.get_note_count()} notes loaded).")
+        except Exception as db_err:
+            logger.warning(f"Database connection not available (running in local offline mode): {db_err}")
 
     # 3. Instantiate & Launch Main Application Window
     window = MainWindow()
