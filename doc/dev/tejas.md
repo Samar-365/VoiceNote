@@ -9,3 +9,7 @@
 - **2026-08-18** | **Task:** Created `.env.example` detailing PostgreSQL connection credentials (`DB_ENGINE`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`) and AI API keys (`GEMINI_API_KEY`, `GROQ_API_KEY`).
 - **2026-08-18** | **Task:** Authored system architecture specification (`doc/architecture.md`) covering PostgreSQL (relational metadata), ChromaDB (vector embeddings), and File Storage (audio recordings).
 - **2026-08-18** | **Task:** Verified application pipeline using `run_all_tests.py` and committed/pushed all changes to branch `tejas`.
+- **2026-08-19** | **Task:** Configured strictly PostgreSQL storage engine (`DatabaseManager` in `voicenote/db/database.py`) with automated database creation (`CREATE DATABASE voicenote`), relational schema initialization, sample data seeder, and unit test suite (`tests/test_db.py`).
+- **2026-08-20** | **Task:** Added `users` table, `User` data model, SHA-256 password hashing, authentication methods (`create_user`, `verify_user_login`), default demo user (`admin`/`admin123`), and comprehensive `doc/database-setup.md` documentation.
+
+

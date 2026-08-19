@@ -1,25 +1,66 @@
 import json
 import logging
+import hashlib
 from typing import List, Optional, Dict, Any
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 from voicenote.config import (
     POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 )
-from voicenote.db.models import Note, Transcript, AISummary, Task
+from voicenote.db.models import Note, Transcript, AISummary, Task, User
 
 logger = logging.getLogger("DatabaseManager")
 
 
+def hash_password(password: str) -> str:
+    """Hash a cleartext password using SHA-256."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
 class DatabaseManager:
-    """Thread-safe PostgreSQL database manager for VoiceNote."""
+    """Strictly PostgreSQL database manager for VoiceNote."""
 
     def __init__(self):
+        self._ensure_database_exists()
         self.init_db()
 
+    def _ensure_database_exists(self):
+        """Connect to default 'postgres' database and create target database if missing."""
+        try:
+            conn = psycopg2.connect(
+                host=POSTGRES_HOST,
+                port=POSTGRES_PORT,
+                dbname=POSTGRES_DB,
+                user=POSTGRES_USER,
+                password=POSTGRES_PASSWORD
+            )
+            conn.close()
+        except psycopg2.OperationalError as e:
+            err_msg = str(e)
+            if f'database "{POSTGRES_DB}" does not exist' in err_msg or "does not exist" in err_msg:
+                logger.info(f"Database '{POSTGRES_DB}' does not exist. Creating database on PostgreSQL server...")
+                conn = psycopg2.connect(
+                    host=POSTGRES_HOST,
+                    port=POSTGRES_PORT,
+                    dbname="postgres",
+                    user=POSTGRES_USER,
+                    password=POSTGRES_PASSWORD
+                )
+                conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+                cursor = conn.cursor()
+                cursor.execute(f'CREATE DATABASE "{POSTGRES_DB}";')
+                cursor.close()
+                conn.close()
+                logger.info(f"Database '{POSTGRES_DB}' created successfully.")
+            else:
+                logger.error(f"PostgreSQL connection error: {e}")
+                raise e
+
     def get_connection(self):
+        """Get PostgreSQL connection."""
         return psycopg2.connect(
             host=POSTGRES_HOST,
             port=POSTGRES_PORT,
@@ -34,6 +75,16 @@ class DatabaseManager:
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(100) UNIQUE NOT NULL,
+                        email VARCHAR(255) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        full_name VARCHAR(255) DEFAULT 'VoiceNote User',
+                        created_at VARCHAR(100) NOT NULL,
+                        avatar_url TEXT
+                    );
+
                     CREATE TABLE IF NOT EXISTS notes (
                         id SERIAL PRIMARY KEY,
                         title VARCHAR(255) NOT NULL,
@@ -73,8 +124,70 @@ class DatabaseManager:
                 """)
             conn.commit()
 
+        if self.get_user_count() == 0:
+            self._seed_default_user()
+
         if self.get_note_count() == 0:
             self._seed_sample_data()
+
+    def get_user_count(self) -> int:
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM users;")
+                res = cursor.fetchone()
+                return res["count"]
+
+    def _seed_default_user(self):
+        """Seed initial default admin user for login authentication."""
+        demo_user = User(
+            username="admin",
+            email="admin@voicenote.ai",
+            password_hash=hash_password("admin123"),
+            full_name="Tejas Rawool"
+        )
+        self.create_user(demo_user)
+        logger.info("Default demo user ('admin' / 'admin123') created successfully.")
+
+    def create_user(self, user: User) -> int:
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO users (username, email, password_hash, full_name, created_at, avatar_url)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    RETURNING id;
+                    """,
+                    (user.username, user.email, user.password_hash, user.full_name, user.created_at, user.avatar_url)
+                )
+                new_id = cursor.fetchone()["id"]
+            conn.commit()
+            return new_id
+
+    def get_user_by_username(self, username: str) -> Optional[Dict[str, Any]]:
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM users WHERE username = %s;", (username,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM users WHERE email = %s;", (email,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
+
+    def verify_user_login(self, username_or_email: str, password: str) -> Optional[Dict[str, Any]]:
+        """Verify login credentials by checking username/email and hashed password."""
+        hashed_pwd = hash_password(password)
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM users WHERE (username = %s OR email = %s) AND password_hash = %s;",
+                    (username_or_email, username_or_email, hashed_pwd)
+                )
+                row = cursor.fetchone()
+                return dict(row) if row else None
 
     def get_note_count(self) -> int:
         with self.get_connection() as conn:
@@ -100,7 +213,7 @@ class DatabaseManager:
             ),
             (
                 Note(title="Task Extraction & AI Prompt Formatting", duration="08m 15s", category="AI Intelligence"),
-                Transcript(raw_text="Defined JSON structured outputs for Ollama and Gemini task extraction, priority categorization, and assignee mapping.", cleaned_text="Defined JSON structured outputs for Ollama and Gemini task extraction, priority categorization, and assignee mapping."),
+                Transcript(raw_text="Defined JSON structured outputs for Groq and Gemini task extraction, priority categorization, and assignee mapping.", cleaned_text="Defined JSON structured outputs for Groq and Gemini task extraction, priority categorization, and assignee mapping."),
                 AISummary(summary="Established Pydantic output schemas for Gemini AI task extraction.", key_points=["Structured JSON output format", "Task priority mapping", "Sentiment analysis tagging"], sentiment="Positive", main_topics=["Gemini API", "Task Extraction", "Pydantic"]),
                 [Task(title="Verify Pydantic models with Gemini API outputs", priority="High", assignee="Atharv", due_date="Today", status="Completed")]
             )
@@ -252,3 +365,13 @@ def get_db() -> DatabaseManager:
     if _db_instance is None:
         _db_instance = DatabaseManager()
     return _db_instance
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    print("Initializing VoiceNote PostgreSQL Database...")
+    db = get_db()
+    print("PostgreSQL Database initialized successfully!")
+    print(f"Total Users: {db.get_user_count()}")
+    print(f"Total Notes: {db.get_note_count()}")
+    print(f"Total Tasks: {len(db.get_all_tasks())}")
