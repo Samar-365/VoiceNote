@@ -5,10 +5,10 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPainter, QColor, QLinearGradient, QPen
 
 class WaveformWidget(QWidget):
-    """Custom Audio Waveform Visualizer rendering thin moving vertical lines in Retro Cream palette."""
+    """Custom Audio Waveform Visualizer rendering thin moving vertical lines in Retro Cream palette matching assets/."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(80)
+        self.setMinimumHeight(70)
         self.is_recording = False
         self.phase = 0.0
         

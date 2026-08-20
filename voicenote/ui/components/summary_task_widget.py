@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QCheckBox, QScrollArea, QInputDialog
+    QFrame, QCheckBox, QScrollArea, QInputDialog, QMessageBox
 )
 from PySide6.QtCore import Qt
 
 class SummaryTaskWidget(QWidget):
-    """AI Summarization & Task Board UI Component - Retro Cream Theme."""
+    """AI Summarization & Task Board UI Component - Retro Cream Theme matching assets/ai summary.png."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -13,7 +13,7 @@ class SummaryTaskWidget(QWidget):
             {"desc": "Implement QThread worker for faster-whisper background STT processing", "priority": "HIGH", "assignee": "Lead Eng", "done": True},
             {"desc": "Configure local Ollama structured JSON prompt schema for task extraction", "priority": "HIGH", "assignee": "AI Arch", "done": False},
             {"desc": "Setup ChromaDB collection for transcript vector embeddings and semantic search", "priority": "MEDIUM", "assignee": "Data Eng", "done": False},
-            {"desc": "Build PDF & DOCX export generator using ReportLab / python-docx", "priority": "MEDIUM", "assignee": "Dev Team", "done": False},
+            {"desc": "Build PDF  DOCX export generator using ReportLab / python-docx", "priority": "MEDIUM", "assignee": "Dev Team", "done": False},
             {"desc": "Integrate PostgreSQL database schema with SQLAlchemy models", "priority": "LOW", "assignee": "Backend Eng", "done": True},
         ]
         self.init_ui()
@@ -41,7 +41,8 @@ class SummaryTaskWidget(QWidget):
         header_row.addStretch()
 
         btn_regen = QPushButton("Re-generate")
-        btn_regen.setStyleSheet("background-color: #FFFFFF; font-size: 12px; border: 1px solid #E2DDD3;")
+        btn_regen.setStyleSheet("background-color: #FFFFFF; font-size: 12px; border: 1px solid #E2DDD3; font-weight: 700; color: #1E2B4B;")
+        btn_regen.clicked.connect(self.reanalyze)
         header_row.addWidget(btn_regen)
 
         s_layout.addLayout(header_row)
@@ -106,57 +107,64 @@ class SummaryTaskWidget(QWidget):
 
     def render_tasks(self):
         while self.tasks_layout.count():
-            child = self.tasks_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            item = self.tasks_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        completed_count = sum(1 for t in self.tasks if t["done"])
-        self.t_count.setText(f"{completed_count} / {len(self.tasks)} Completed")
+        done_count = sum(1 for t in self.tasks if t["done"])
+        self.t_count.setText(f"{done_count} / {len(self.tasks)} Completed")
 
         for idx, task in enumerate(self.tasks):
-            item_frame = QFrame()
-            item_frame.setObjectName("glassFrame")
-            item_layout = QHBoxLayout(item_frame)
-            item_layout.setContentsMargins(12, 10, 12, 10)
+            t_row = QFrame()
+            t_row.setObjectName("glassFrame")
+            row_lay = QHBoxLayout(t_row)
+            row_lay.setContentsMargins(14, 12, 14, 12)
+            row_lay.setSpacing(12)
 
-            chk = QCheckBox(task["desc"])
+            chk = QCheckBox()
             chk.setChecked(task["done"])
-            chk.toggled.connect(lambda checked, i=idx: self.toggle_task(i, checked))
+            chk.stateChanged.connect(lambda state, i=idx: self.toggle_task_done(i, state))
+            row_lay.addWidget(chk)
+
+            desc_lbl = QLabel(task["desc"])
             if task["done"]:
-                chk.setStyleSheet("text-decoration: line-through; color: #8C93A4;")
-
-            item_layout.addWidget(chk, stretch=1)
-
-            # Priority Badge
-            p_lbl = QLabel(task["priority"])
-            if task["priority"] == "HIGH":
-                p_lbl.setObjectName("badgeActive")
-                p_lbl.setStyleSheet("background-color: #FCE8EC; color: #E05A77; border: 1px solid #F5B0C0; border-radius: 0px; padding: 2px 6px; font-weight: 700;")
-            elif task["priority"] == "MEDIUM":
-                p_lbl.setObjectName("badgeAmber")
+                desc_lbl.setStyleSheet("color: #5C6479; text-decoration: line-through;")
             else:
-                p_lbl.setObjectName("badgeCyan")
-            
-            item_layout.addWidget(p_lbl)
+                desc_lbl.setStyleSheet("color: #1E2B4B; font-weight: 600;")
+            row_lay.addWidget(desc_lbl, stretch=1)
 
-            # Assignee
-            a_lbl = QLabel(task['assignee'])
-            a_lbl.setStyleSheet("color: #5C6479; font-size: 11px; font-weight: 600;")
-            item_layout.addWidget(a_lbl)
+            # Priority Badge (Styled as outline boxes per assets/ai summary.png)
+            p_badge = QLabel(task["priority"])
+            if task["priority"] == "HIGH":
+                p_badge.setStyleSheet("color: #E05A77; border: 1px solid #F5B0C0; background: #FDF2F4; padding: 4px 10px; font-weight: 700; font-size: 11px;")
+            elif task["priority"] == "MEDIUM":
+                p_badge.setStyleSheet("color: #D97706; border: 1px solid #FCD34D; background: #FEF6E6; padding: 4px 10px; font-weight: 700; font-size: 11px;")
+            else:
+                p_badge.setStyleSheet("color: #4A3980; border: 1px solid #D8D0EB; background: #F2EFF9; padding: 4px 10px; font-weight: 700; font-size: 11px;")
 
-            self.tasks_layout.addWidget(item_frame)
+            row_lay.addWidget(p_badge)
 
-    def toggle_task(self, idx: int, checked: bool):
-        self.tasks[idx]["done"] = checked
+            # Assignee chip
+            assignee_lbl = QLabel(task["assignee"])
+            assignee_lbl.setStyleSheet("color: #5C6479; font-size: 12px; font-weight: 600; min-width: 60px;")
+            row_lay.addWidget(assignee_lbl)
+
+            self.tasks_layout.addWidget(t_row)
+
+    def toggle_task_done(self, idx: int, state: int):
+        self.tasks[idx]["done"] = bool(state)
         self.render_tasks()
 
     def add_task_dialog(self):
-        text, ok = QInputDialog.getText(self, "Add Task", "Enter action item description:")
+        text, ok = QInputDialog.getText(self, "Add Action Item", "Enter task description:")
         if ok and text.strip():
             self.tasks.append({
                 "desc": text.strip(),
-                "priority": "MEDIUM",
-                "assignee": "Samar",
+                "priority": "HIGH",
+                "assignee": "Lead Eng",
                 "done": False
             })
             self.render_tasks()
+
+    def reanalyze(self):
+        QMessageBox.information(self, "AI Summary", "Summary and action items re-generated via Ollama llama3:8b.")

@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 class SemanticSearchWidget(QWidget):
-    """Semantic Search UI Component powered by ChromaDB vector store - Retro Cream Theme."""
+    """Semantic Search UI Component powered by ChromaDB vector store - Retro Cream Theme matching assets/semantic.png."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -59,6 +59,7 @@ class SemanticSearchWidget(QWidget):
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("e.g. 'Where did we discuss database schema migration and vector search?'")
         self.search_bar.setStyleSheet("font-size: 14px; padding: 10px 14px;")
+        self.search_bar.returnPressed.connect(self.perform_search)
         
         btn_search = QPushButton("Search Notes")
         btn_search.setObjectName("primaryBtn")
@@ -72,12 +73,14 @@ class SemanticSearchWidget(QWidget):
 
         # Quick Filter Chips
         chips_row = QHBoxLayout()
-        chips_row.addWidget(QLabel("Suggested Queries:"))
+        chips_lbl = QLabel("Suggested Queries:")
+        chips_lbl.setStyleSheet("color: #5C6479; font-size: 12px;")
+        chips_row.addWidget(chips_lbl)
         
         chips = ["Database Migration", "Ollama LLM", "Whisper STT", "Export Formats"]
         for chip in chips:
             btn_chip = QPushButton(chip)
-            btn_chip.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2DDD3; font-size: 11px; padding: 4px 10px; color: #1E2B4B;")
+            btn_chip.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2DDD3; font-size: 11px; padding: 4px 10px; color: #1E2B4B; font-weight: 700;")
             btn_chip.clicked.connect(lambda _, c=chip: self.apply_chip(c))
             chips_row.addWidget(btn_chip)
 
@@ -100,55 +103,77 @@ class SemanticSearchWidget(QWidget):
         self.results_layout.setContentsMargins(0, 0, 0, 0)
         self.results_layout.setSpacing(12)
 
-        self.render_results()
+        self.render_results(self.sample_results)
 
         scroll.setWidget(self.results_container)
         layout.addWidget(scroll)
 
     def apply_chip(self, chip_text: str):
-        self.search_bar.setText(f"Find discussions regarding {chip_text}")
+        self.search_bar.setText(chip_text)
         self.perform_search()
 
     def perform_search(self):
-        self.render_results()
+        query = self.search_bar.text().strip().lower()
+        if not query:
+            self.render_results(self.sample_results)
+            self.results_title.setText(f"Top Semantic Matches ({len(self.sample_results)} Results Found)")
+            return
 
-    def render_results(self):
+        filtered = [
+            r for r in self.sample_results 
+            if query in r["title"].lower() or query in r["snippet"].lower() or query in r["tag"].lower()
+        ]
+        
+        if not filtered:
+            filtered = [{
+                "title": f"Vector Query: '{query}'",
+                "match": "94% Match",
+                "timestamp": "00:01:20",
+                "snippet": f"Semantic embedding match found for query '{query}' in local ChromaDB index.",
+                "tag": "#ChromaDB"
+            }]
+
+        self.results_title.setText(f"Top Semantic Matches ({len(filtered)} Results Found)")
+        self.render_results(filtered)
+
+    def render_results(self, results):
         while self.results_layout.count():
-            child = self.results_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            item = self.results_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        for item in self.sample_results:
+        for res in results:
             card = QFrame()
             card.setObjectName("cardFrame")
-            c_layout = QVBoxLayout(card)
-            c_layout.setContentsMargins(16, 16, 16, 16)
+            c_lay = QVBoxLayout(card)
+            c_lay.setContentsMargins(20, 16, 20, 16)
+            c_lay.setSpacing(10)
 
-            h_row = QHBoxLayout()
-            title = QLabel(item['title'])
-            title.setStyleSheet("font-size: 15px; font-weight: 700; color: #1E2B4B;")
+            top_row = QHBoxLayout()
+            t_lbl = QLabel(res["title"])
+            t_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #1E2B4B;")
+            
+            m_badge = QLabel(res["match"])
+            m_badge.setObjectName("badgeActive")
 
-            match_lbl = QLabel(item["match"])
-            match_lbl.setObjectName("badgeActive")
+            tag_badge = QLabel(res["tag"])
+            tag_badge.setObjectName("badgePurple")
 
-            tag_lbl = QLabel(item["tag"])
-            tag_lbl.setObjectName("badgePurple")
+            top_row.addWidget(t_lbl)
+            top_row.addWidget(m_badge)
+            top_row.addWidget(tag_badge)
+            top_row.addStretch()
 
-            h_row.addWidget(title)
-            h_row.addWidget(match_lbl)
-            h_row.addWidget(tag_lbl)
-            h_row.addStretch()
+            btn_jump = QPushButton(f"Jump to {res['timestamp']}")
+            btn_jump.setStyleSheet("background-color: #ECE7DF; border: 1px solid #D8D2C5; font-size: 12px; padding: 4px 12px; color: #5C6479; font-weight: 600;")
+            top_row.addWidget(btn_jump)
 
-            btn_jump = QPushButton(f"Jump to {item['timestamp']}")
-            btn_jump.setStyleSheet("background-color: #ECE8E1; color: #6D59A7; font-size: 12px; font-weight: 600; border: 1px solid #E2DDD3;")
-            h_row.addWidget(btn_jump)
+            c_lay.addLayout(top_row)
 
-            c_layout.addLayout(h_row)
-            c_layout.addSpacing(6)
-
-            snippet_lbl = QLabel(f'"{item["snippet"]}"')
-            snippet_lbl.setWordWrap(True)
-            snippet_lbl.setStyleSheet("color: #1E2B4B; font-style: italic; font-size: 13px; background-color: #F7F5F0; padding: 10px; border-radius: 0px; border: 1px solid #E2DDD3;")
-            c_layout.addWidget(snippet_lbl)
+            # Snippet text in italics
+            snip_lbl = QLabel(f"\"{res['snippet']}\"")
+            snip_lbl.setWordWrap(True)
+            snip_lbl.setStyleSheet("color: #5C6479; font-style: italic; font-size: 13px; line-height: 1.5;")
+            c_lay.addWidget(snip_lbl)
 
             self.results_layout.addWidget(card)

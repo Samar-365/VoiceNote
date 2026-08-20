@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Signal, Qt
 
 class NoteCard(QFrame):
-    """Card widget representing a single Voice Note item - Retro Cream Theme."""
+    """Card widget representing a single Voice Note item - Retro Cream Theme matching assets/home.png."""
     view_clicked = Signal(str)
     export_clicked = Signal(str)
 
@@ -25,7 +25,7 @@ class NoteCard(QFrame):
         t_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #1E2B4B;")
         
         dur_lbl = QLabel(f"Duration: {duration}")
-        dur_lbl.setStyleSheet("color: #6D59A7; font-weight: 700; font-size: 12px;")
+        dur_lbl.setStyleSheet("color: #6D59A7; font-weight: 700; font-size: 12px; margin-left: 8px;")
 
         date_lbl = QLabel(date)
         date_lbl.setStyleSheet("color: #8C93A4; font-size: 12px;")
