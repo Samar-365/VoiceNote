@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QStackedWidget, QScrollArea, QFrame, QGridLayout, QMessageBox, QStatusBar
 )
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon
 
 from voicenote.config import APP_NAME, APP_SUBTITLE, VERSION
@@ -29,9 +29,11 @@ from voicenote.ui.dialogs.profile_dialog import ProfileDialog
 
 class MainWindow(QMainWindow):
     """Main Application Window for VoiceNote Desktop matching assets/home.png."""
+    logout_requested = Signal()
 
-    def __init__(self):
+    def __init__(self, current_user: dict = None):
         super().__init__()
+        self.current_user = current_user or {}
         self.setWindowTitle(f"{APP_NAME} Desktop - AI-Powered Local Voice Intelligence")
         self.resize(1280, 840)
         self.setMinimumSize(1024, 700)
@@ -65,6 +67,8 @@ class MainWindow(QMainWindow):
 
         # 2. Header Bar
         self.header = HeaderWidget()
+        if self.current_user:
+            self.header.set_user(self.current_user)
         self.header.profile_clicked.connect(self.show_profile_dialog)
         self.header.search_triggered.connect(self.on_header_search)
         right_layout.addWidget(self.header)
@@ -254,8 +258,14 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Export Success", "Successfully exported selected note.")
 
     def show_profile_dialog(self):
-        dialog = ProfileDialog(parent=self)
+        dialog = ProfileDialog(user_data=self.current_user, parent=self)
+        dialog.logout_requested.connect(self.on_logout_triggered)
         dialog.exec()
+
+    def on_logout_triggered(self):
+        self.logout_requested.emit()
+        self.close()
+
 
     def on_new_recording_finished(self, raw_text_or_path: str):
         self.status_bar.showMessage("Processing Audio & Generating AI Summary...")

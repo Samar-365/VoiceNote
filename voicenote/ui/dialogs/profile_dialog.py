@@ -1,16 +1,20 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QComboBox, QLineEdit, QFrame, QTabWidget, QWidget
+    QComboBox, QLineEdit, QFrame, QTabWidget, QWidget, QMessageBox
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+
 
 class ProfileDialog(QDialog):
     """User Profile and System Settings Configuration Dialog - Retro Cream Theme."""
 
-    def __init__(self, parent=None):
+    logout_requested = Signal()
+
+    def __init__(self, user_data: dict = None, parent=None):
         super().__init__(parent)
+        self.user_data = user_data or {}
         self.setWindowTitle("Settings & Profile")
-        self.setFixedSize(540, 440)
+        self.setFixedSize(560, 480)
         self.init_ui()
 
     def init_ui(self):
@@ -24,13 +28,30 @@ class ProfileDialog(QDialog):
 
         tabs = QTabWidget()
 
-        # Tab 1: Profile & Preferences
+        # Tab 1: Profile & Account
         tab_profile = QWidget()
         p_layout = QVBoxLayout(tab_profile)
-        p_layout.setSpacing(12)
+        p_layout.setSpacing(10)
 
-        p_layout.addWidget(QLabel("<b>User Display Name:</b>"))
-        self.name_edit = QLineEdit("Samar")
+        # User Info Summary Card
+        user_card = QFrame()
+        user_card.setObjectName("glassFrame")
+        uc_lay = QVBoxLayout(user_card)
+        uc_lay.setContentsMargins(12, 10, 12, 10)
+        uc_lay.setSpacing(4)
+
+        full_name = self.user_data.get("full_name") or "VoiceNote User"
+        username = self.user_data.get("username") or "user"
+        email = self.user_data.get("email") or "user@voicenote.ai"
+        created_at = self.user_data.get("created_at") or "N/A"
+
+        uc_lay.addWidget(QLabel(f"<b>Active User:</b> {full_name} (@{username})"))
+        uc_lay.addWidget(QLabel(f"<b>Registered Email:</b> {email}"))
+        uc_lay.addWidget(QLabel(f"<b>Member Since:</b> {created_at}"))
+        p_layout.addWidget(user_card)
+
+        p_layout.addWidget(QLabel("<b>Display Name:</b>"))
+        self.name_edit = QLineEdit(full_name)
         p_layout.addWidget(self.name_edit)
 
         p_layout.addWidget(QLabel("<b>Primary Role / Department:</b>"))
@@ -44,6 +65,12 @@ class ProfileDialog(QDialog):
         path_row.addWidget(self.path_edit)
         path_row.addWidget(btn_browse)
         p_layout.addLayout(path_row)
+
+        # Logout button in profile
+        btn_logout = QPushButton("🚪 Sign Out of Account")
+        btn_logout.setObjectName("stopBtn")
+        btn_logout.clicked.connect(self.on_sign_out)
+        p_layout.addWidget(btn_logout)
 
         p_layout.addStretch()
         tabs.addTab(tab_profile, "User Profile")
@@ -118,3 +145,15 @@ class ProfileDialog(QDialog):
         btn_row.addWidget(btn_save)
 
         layout.addLayout(btn_row)
+
+    def on_sign_out(self):
+        reply = QMessageBox.question(
+            self,
+            "Confirm Sign Out",
+            "Are you sure you want to sign out of this account?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.logout_requested.emit()
+            self.reject()

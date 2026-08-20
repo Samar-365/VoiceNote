@@ -28,24 +28,18 @@ class HeaderWidget(QFrame):
 
         layout.addStretch()
 
-        # Engine Status Indicators
-        st_ollama = QLabel("Ollama: llama3:8b")
-        st_ollama.setObjectName("badgePurple")
-        
-        st_whisper = QLabel("Whisper: Small.en")
-        st_whisper.setObjectName("badgePurple")
-
-        st_db = QLabel("Postgres: Online")
-        st_db.setObjectName("badgeActive")
-
-        layout.addWidget(st_ollama)
-        layout.addWidget(st_whisper)
-        layout.addWidget(st_db)
-
-        layout.addSpacing(12)
-
         # User Profile Avatar Button
-        btn_profile = QPushButton("Samar (Admin)")
-        btn_profile.setObjectName("primaryBtn")
-        btn_profile.clicked.connect(self.profile_clicked.emit)
-        layout.addWidget(btn_profile)
+        self.btn_profile = QPushButton("User (Admin)")
+        self.btn_profile.setObjectName("primaryBtn")
+        self.btn_profile.clicked.connect(self.profile_clicked.emit)
+        layout.addWidget(self.btn_profile)
+
+    def set_user(self, user: dict):
+        """Update header profile button text with current user info."""
+        if not user:
+            self.btn_profile.setText("Guest")
+            return
+        name = user.get("full_name") or user.get("username") or "User"
+        username = user.get("username", "")
+        self.btn_profile.setText(f"👤 {name} (@{username})" if username else f"👤 {name}")
+

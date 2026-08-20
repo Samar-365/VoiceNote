@@ -3,9 +3,13 @@ import logging
 import hashlib
 from typing import List, Optional, Dict, Any
 
-import psycopg2
-import psycopg2.extras
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+try:
+    import psycopg2
+    import psycopg2.extras
+    from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+except ImportError:
+    psycopg2 = None
+    ISOLATION_LEVEL_AUTOCOMMIT = None
 
 from voicenote.config import (
     POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
@@ -13,6 +17,7 @@ from voicenote.config import (
 from voicenote.db.models import Note, Transcript, AISummary, Task, User
 
 logger = logging.getLogger("DatabaseManager")
+
 
 
 def hash_password(password: str) -> str:
@@ -24,8 +29,11 @@ class DatabaseManager:
     """Strictly PostgreSQL database manager for VoiceNote."""
 
     def __init__(self):
+        if psycopg2 is None:
+            raise RuntimeError("psycopg2 is not installed. Please install psycopg2-binary to use PostgreSQL.")
         self._ensure_database_exists()
         self.init_db()
+
 
     def _ensure_database_exists(self):
         """Connect to default 'postgres' database and create target database if missing."""
@@ -360,11 +368,19 @@ class DatabaseManager:
 _db_instance: Optional[DatabaseManager] = None
 
 
-def get_db() -> DatabaseManager:
+def get_db() -> Optional[DatabaseManager]:
     global _db_instance
+    if psycopg2 is None:
+        logger.warning("psycopg2 is not installed in current Python environment. Running in offline mode.")
+        return None
     if _db_instance is None:
-        _db_instance = DatabaseManager()
+        try:
+            _db_instance = DatabaseManager()
+        except Exception as e:
+            logger.warning(f"Unable to connect to PostgreSQL database: {e}")
+            return None
     return _db_instance
+
 
 
 if __name__ == "__main__":

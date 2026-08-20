@@ -100,28 +100,34 @@ class TestPostgreSQLDatabaseManager(unittest.TestCase):
     def test_user_auth_flow(self):
         if self.db is None:
             self.skipTest("PostgreSQL server not running locally or auth failed.")
+        import uuid
         from voicenote.db.database import hash_password
         from voicenote.db import User
 
+        unique_id = uuid.uuid4().hex[:6]
+        u_name = f"test_user_{unique_id}"
+        u_email = f"test_{unique_id}@voicenote.ai"
+
         new_user = User(
-            username="test_user",
-            email="test@voicenote.ai",
+            username=u_name,
+            email=u_email,
             password_hash=hash_password("secret123"),
             full_name="Test User"
         )
         user_id = self.db.create_user(new_user)
         self.assertIsNotNone(user_id)
 
-        user_by_name = self.db.get_user_by_username("test_user")
+        user_by_name = self.db.get_user_by_username(u_name)
         self.assertIsNotNone(user_by_name)
-        self.assertEqual(user_by_name["email"], "test@voicenote.ai")
+        self.assertEqual(user_by_name["email"], u_email)
 
-        verified = self.db.verify_user_login("test_user", "secret123")
+        verified = self.db.verify_user_login(u_name, "secret123")
         self.assertIsNotNone(verified)
-        self.assertEqual(verified["username"], "test_user")
+        self.assertEqual(verified["username"], u_name)
 
-        invalid = self.db.verify_user_login("test_user", "wrongpassword")
+        invalid = self.db.verify_user_login(u_name, "wrongpassword")
         self.assertIsNone(invalid)
+
 
 
 if __name__ == "__main__":
