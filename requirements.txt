@@ -15,10 +15,10 @@ faster-whisper
 # ollama
 requests
 google-genai
-gorq
+groq
 
 # Database & ORM (PostgreSQL)
-# psycopg2-binary>=2.9.9
+psycopg2-binary>=2.9.9
 # SQLAlchemy>=2.0.0
 
 # Vector Database & Embeddings
