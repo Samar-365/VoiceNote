@@ -28,22 +28,6 @@ class HeaderWidget(QFrame):
 
         layout.addStretch()
 
-        # Engine Status Indicators
-        st_ollama = QLabel("Ollama: llama3:8b")
-        st_ollama.setObjectName("badgePurple")
-        
-        st_whisper = QLabel("Whisper: Small.en")
-        st_whisper.setObjectName("badgePurple")
-
-        st_db = QLabel("Postgres: Online")
-        st_db.setObjectName("badgeActive")
-
-        layout.addWidget(st_ollama)
-        layout.addWidget(st_whisper)
-        layout.addWidget(st_db)
-
-        layout.addSpacing(12)
-
         # User Profile Avatar Button
         self.btn_profile = QPushButton("User (Admin)")
         self.btn_profile.setObjectName("primaryBtn")
