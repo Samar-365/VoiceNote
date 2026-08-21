@@ -55,13 +55,34 @@ def run_ai_engine_tests():
         logger.warning("[SKIP] GEMINI_API_KEY not set in environment. Skipping live Gemini API tests.")
         return True
     try:
-        from tests import test_ai_engine
-        test_ai_engine.test_empty_prompt()
-        test_ai_engine.test_empty_transcript()
-        logger.info("[OK] AI Engine prompt validation passed.")
-        return True
+        from tests.test_ai_engine import TestAIEngine
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestAIEngine)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] AI Engine prompt validation passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] AI Engine tests failed: {result.errors + result.failures}")
+            return False
     except Exception as e:
         logger.error(f"[ERROR] AI Engine test failed: {e}")
+        return False
+
+
+def run_audio_recording_tests():
+    logger.info("--- Testing Audio Recording File Storage (data/recording) ---")
+    try:
+        from tests.test_audio_recording import TestAudioRecordingStorage
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestAudioRecordingStorage)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] Audio recording file storage tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Audio recording file storage tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Audio recording tests failed: {e}")
         return False
 
 
@@ -86,6 +107,7 @@ def main():
     results = [
         ("Database Layer", run_db_tests()),
         ("Text Cleaner Engine", run_text_cleaner_tests()),
+        ("Audio Recording Storage", run_audio_recording_tests()),
         ("AI Engine Validation", run_ai_engine_tests()),
         ("GUI & Service Workers", run_gui_import_tests()),
     ]
