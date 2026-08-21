@@ -1,4 +1,9 @@
 import os
+import wave
+import struct
+import math
+import shutil
+from datetime import datetime
 from pathlib import Path
 import logging
 from PySide6.QtWidgets import (
@@ -6,6 +11,8 @@ from PySide6.QtWidgets import (
     QComboBox, QFrame, QFileDialog, QProgressBar
 )
 from PySide6.QtCore import Qt, QTimer, Signal
+from voicenote.config import RECORDING_DIR
+from voicenote.core.audio_engine import AudioEngine, get_input_devices
 from voicenote.ui.components.waveform_widget import WaveformWidget
 
 logger = logging.getLogger("AudioRecorder")
@@ -19,7 +26,14 @@ class AudioRecorderWidget(QWidget):
         self.seconds_elapsed = 0
         self.is_paused = False
         self.active_audio_payload = "Live Voice Recording"
+        self.audio_engine = AudioEngine()
         self.init_ui()
+
+    def refresh_input_devices(self):
+        self.mic_combo.clear()
+        devices = get_input_devices()
+        for idx, name in devices:
+            self.mic_combo.addItem(name, idx)
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -48,11 +62,7 @@ class AudioRecorderWidget(QWidget):
 
         # Input Device Selector
         self.mic_combo = QComboBox()
-        self.mic_combo.addItems([
-            "Microphone (Realtek High Definition Audio)",
-            "USB Headset Microphone",
-            "Stereo Mix (System Loopback)"
-        ])
+        self.refresh_input_devices()
         self.mic_combo.setFixedWidth(280)
         header_row.addWidget(self.mic_combo)
 
@@ -152,9 +162,14 @@ class AudioRecorderWidget(QWidget):
 
     def toggle_recording(self):
         if not self.waveform.is_recording and not self.is_paused:
-            logger.info("Live audio recording session started.")
+            selected_idx = self.mic_combo.currentData()
+            logger.info(f"Live audio recording session started on device index {selected_idx}.")
             self.seconds_elapsed = 0
             self.timer_label.setText("00:00:00")
+            
+            # Start hardware microphone capture
+            self.audio_engine.start_recording(device_index=selected_idx)
+            
             self.waveform.set_recording(True)
             self.timer.start(1000)
             self.btn_record.setText("Recording...")
@@ -172,6 +187,7 @@ class AudioRecorderWidget(QWidget):
         if self.is_paused:
             logger.info("Audio recording resumed from pause.")
             self.is_paused = False
+            self.audio_engine.resume_recording()
             self.waveform.set_recording(True)
             self.timer.start(1000)
             self.btn_pause.setText("Pause")
@@ -182,6 +198,7 @@ class AudioRecorderWidget(QWidget):
         elif self.waveform.is_recording:
             logger.info(f"Audio recording paused at {self.timer_label.text()}.")
             self.waveform.set_recording(False)
+            self.audio_engine.pause_recording()
             self.timer.stop()
             self.is_paused = True
             self.btn_pause.setText("Resume")
@@ -192,8 +209,16 @@ class AudioRecorderWidget(QWidget):
 
     def stop_recording(self):
         total_time = self.timer_label.text()
-        self.active_audio_payload = f"Voice Recording ({total_time})"
-        logger.info(f"Audio recording stopped permanently. Total duration: {total_time}. Sending to processing pipeline...")
+        logger.info(f"Audio recording stopped permanently. Total duration: {total_time}. Storing recording in data/recording folder...")
+        
+        # Stop mic capture and save real audible WAV to data/recording
+        try:
+            saved_wav = self.audio_engine.stop_recording()
+            self.active_audio_payload = saved_wav
+            logger.info(f"Audio recording successfully stored at: {saved_wav}")
+        except Exception as e:
+            logger.error(f"Failed to save audio recording: {e}")
+            self.active_audio_payload = f"Voice Recording ({total_time})"
         
         # 1. Halt all recording activities
         self.waveform.set_recording(False)
@@ -235,6 +260,10 @@ class AudioRecorderWidget(QWidget):
         mins, secs = divmod(self.seconds_elapsed, 60)
         hrs, mins = divmod(mins, 60)
         self.timer_label.setText(f"{hrs:02d}:{mins:02d}:{secs:02d}")
+        
+        # Stream live audio amplitude into dynamic waveform visualizer
+        latest_amp = self.audio_engine.get_latest_amplitude()
+        self.waveform.set_live_amplitude(latest_amp)
 
     def browse_audio_file(self):
         logger.info("Opening system audio file picker dialog...")
@@ -242,15 +271,28 @@ class AudioRecorderWidget(QWidget):
             self, "Select Audio File", "", "Audio Files (*.wav *.mp3 *.m4a *.mp4)"
         )
         if file_path:
-            file_name = Path(file_path).name
-            file_ext = Path(file_path).suffix.upper()
+            src_path = Path(file_path)
+            file_name = src_path.name
+            file_ext = src_path.suffix.upper()
             try:
                 file_size_kb = round(os.path.getsize(file_path) / 1024, 1)
             except Exception:
                 file_size_kb = "N/A"
+
+            # Copy imported audio file to data/recording folder
+            RECORDING_DIR.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            dest_file = RECORDING_DIR / f"imported_{timestamp}_{src_path.name}"
+            try:
+                shutil.copy2(src_path, dest_file)
+                saved_audio_path = str(dest_file)
+                logger.info(f"Imported audio file stored in recording directory: '{dest_file}'")
+            except Exception as copy_err:
+                logger.warning(f"Could not copy to data/recording folder ({copy_err}), using original path: {file_path}")
+                saved_audio_path = file_path
             
-            self.active_audio_payload = file_path
-            logger.info(f"Imported audio file: '{file_name}' (Format: {file_ext}, Size: {file_size_kb} KB, Path: {file_path}). Sending to STT pipeline...")
+            self.active_audio_payload = saved_audio_path
+            logger.info(f"Audio payload ready: '{file_name}' (Format: {file_ext}, Size: {file_size_kb} KB). Sending to STT pipeline...")
             
             self.status_badge.setText("PROCESSING")
             self.status_badge.setObjectName("badgePurple")
