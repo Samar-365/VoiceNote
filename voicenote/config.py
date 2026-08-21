@@ -16,7 +16,8 @@ LOCAL_STT_MODEL = "small"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-RECORDINGS_DIR = DATA_DIR / "recordings"
+RECORDING_DIR = DATA_DIR / "recording"
+RECORDINGS_DIR = DATA_DIR / "recording"
 
 # Database Configuration (Strictly PostgreSQL Engine)
 DB_ENGINE = "postgres"
@@ -28,4 +29,5 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
-RECORDINGS_DIR.mkdir(exist_ok=True)
+RECORDING_DIR.mkdir(exist_ok=True)
+(DATA_DIR / "recordings").mkdir(exist_ok=True)

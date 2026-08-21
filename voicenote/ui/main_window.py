@@ -268,13 +268,29 @@ class MainWindow(QMainWindow):
 
 
     def on_new_recording_finished(self, raw_text_or_path: str):
-        self.status_bar.showMessage("Processing Audio & Generating AI Summary...")
+        self.status_bar.showMessage("Recording saved to data/recording • Processing AI Pipeline...")
         
         # Check if background PipelineWorker is available
         if PipelineWorker and callable(PipelineWorker):
             try:
-                title_snip = raw_text_or_path[:20] if raw_text_or_path else "Recording"
-                self.worker = PipelineWorker(raw_transcript=raw_text_or_path, title=f"Voice Note ({title_snip}...)")
+                from pathlib import Path
+                is_file = Path(raw_text_or_path).exists() if raw_text_or_path else False
+                if is_file:
+                    audio_file = raw_text_or_path
+                    raw_text = None
+                    file_stem = Path(raw_text_or_path).stem
+                    title_name = f"Voice Note ({file_stem})"
+                else:
+                    audio_file = None
+                    raw_text = raw_text_or_path
+                    title_snip = raw_text_or_path[:20] if raw_text_or_path else "Recording"
+                    title_name = f"Voice Note ({title_snip}...)"
+
+                self.worker = PipelineWorker(
+                    audio_path=audio_file,
+                    raw_transcript=raw_text,
+                    title=title_name
+                )
                 self.worker.progress.connect(lambda msg: self.status_bar.showMessage(msg))
                 self.worker.finished.connect(self.on_pipeline_success)
                 self.worker.error.connect(self.on_pipeline_error)
@@ -286,8 +302,8 @@ class MainWindow(QMainWindow):
         # Presentation mode fallback
         self.status_bar.showMessage("AI Processing Complete • Note added to dashboard")
         QMessageBox.information(
-            self, "Transcription Complete",
-            "Whisper speech recognition & Gemini AI summary processing completed successfully!\n\nNote added to your dashboard."
+            self, "Recording Saved & Transcribed",
+            f"Audio recording successfully stored in data/recording folder.\n\nFile/Payload: {raw_text_or_path}\n\nNote added to your dashboard."
         )
         self.sidebar.on_nav_click(1)
 
