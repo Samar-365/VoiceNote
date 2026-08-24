@@ -1,6 +1,7 @@
 """
 VoiceNote Export Dialog.
 Provides user-facing interface for configuring note export format,
+selecting source voice note with full transcription context,
 destination path, and included sections (PDF, DOCX, and TXT).
 """
 
@@ -9,16 +10,20 @@ import sys
 import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, List
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QCheckBox, QRadioButton, QButtonGroup, QFrame, QLineEdit,
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QComboBox
 )
 from PySide6.QtCore import Qt
 
 from voicenote.core.export_engine import ExportEngine
+try:
+    from voicenote.db.database import get_db
+except Exception:
+    get_db = lambda: None
 
 
 class ExportDialog(QDialog):
@@ -32,13 +37,22 @@ class ExportDialog(QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Export Voice Note")
-        self.setFixedSize(540, 520)
+        self.setFixedSize(560, 580)
 
-        # Initialize export engine
+        # Initialize export engine & database
         self.export_engine = ExportEngine()
+        self.db = get_db()
         self.exported_file_path: Optional[str] = None
+        self.all_db_notes: List[Dict[str, Any]] = []
 
-        # Resolve note data
+        # Load available notes from database
+        if self.db:
+            try:
+                self.all_db_notes = self.db.get_all_notes()
+            except Exception:
+                self.all_db_notes = []
+
+        # Resolve initial note data
         if note_data is not None:
             if isinstance(note_data, dict):
                 self.note_data = dict(note_data)
@@ -46,18 +60,62 @@ class ExportDialog(QDialog):
                 self.note_data = dict(note_data.__dict__)
             else:
                 self.note_data = {"title": str(note_data)}
+        elif note_title:
+            self.note_data = self._fetch_db_note_data(note_title)
+        elif self.all_db_notes:
+            self.note_data = self._fetch_db_note_data(self.all_db_notes[0].get("title", ""))
         else:
-            title = note_title or "Sprint Planning & Local AI Architecture"
-            self.note_data = self._get_fallback_note_data(title)
-
-        if note_title and "title" not in self.note_data:
-            self.note_data["title"] = note_title
+            self.note_data = self._get_fallback_note_data("Sprint Planning & Local AI Architecture")
 
         self.note_title = self.note_data.get("title", "Voice Note")
         self.init_ui()
 
+    def _fetch_db_note_data(self, note_title: str) -> Dict[str, Any]:
+        """Fetch complete transcript, summary, and tasks for a given note title from DB."""
+        if not self.db:
+            return self._get_fallback_note_data(note_title)
+
+        try:
+            target = next((n for n in self.all_db_notes if n.get("title") == note_title), None)
+            if not target:
+                all_notes = self.db.get_all_notes()
+                target = next((n for n in all_notes if n.get("title") == note_title), None)
+
+            if not target:
+                return self._get_fallback_note_data(note_title)
+
+            note_id = target.get("id")
+            transcript_data = self.db.get_transcript(note_id) if note_id else None
+            summary_data = self.db.get_ai_summary(note_id) if note_id else None
+            all_tasks = self.db.get_all_tasks() if note_id else []
+            note_tasks = [t for t in all_tasks if t.get("note_id") == note_id]
+
+            tags = target.get("main_topics") or target.get("tags") or [target.get("category", "General")]
+            if summary_data and summary_data.get("main_topics"):
+                tags = summary_data.get("main_topics")
+
+            raw_t = transcript_data.get("cleaned_text") or transcript_data.get("raw_text") if transcript_data else ""
+            if not raw_t:
+                raw_t = target.get("summary", "")
+
+            return {
+                "id": note_id,
+                "title": target.get("title", note_title),
+                "created_at": target.get("created_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                "duration": target.get("duration", "00:00"),
+                "category": target.get("category", "General"),
+                "tags": tags,
+                "summary": summary_data.get("summary", target.get("summary", "")) if summary_data else target.get("summary", ""),
+                "key_points": summary_data.get("key_points", target.get("key_points", [])) if summary_data else target.get("key_points", []),
+                "sentiment": summary_data.get("sentiment", "Neutral") if summary_data else "Neutral",
+                "tasks": note_tasks,
+                "transcript": raw_t,
+            }
+        except Exception:
+            return self._get_fallback_note_data(note_title)
+
     def _get_fallback_note_data(self, title: str) -> Dict[str, Any]:
-        """Generate structured sample note data if standalone note was passed without context."""
+        """Generate structured note data if standalone note was passed without DB context."""
         return {
             "title": title,
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -90,32 +148,67 @@ class ExportDialog(QDialog):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(14)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(12)
 
         # Header Title
         title = QLabel("Export Note Document")
         title.setStyleSheet("font-size: 18px; font-weight: 800; color: #1E2B4B;")
-        
-        target = QLabel(f"Exporting: <b>{self.note_title}</b>")
-        target.setStyleSheet("color: #5C6479; font-size: 13px;")
-
         layout.addWidget(title)
-        layout.addWidget(target)
+
+        # 0. Source Note Selection Box
+        note_card = QFrame()
+        note_card.setObjectName("cardFrame")
+        n_layout = QVBoxLayout(note_card)
+        n_layout.setContentsMargins(14, 10, 14, 10)
+        n_layout.setSpacing(6)
+
+        n_layout.addWidget(QLabel("<b>1. Select Source Note to Export:</b>"))
+        self.combo_notes = QComboBox()
+        self.combo_notes.setStyleSheet("background: #FFFFFF; border: 1px solid #E2DDD3; padding: 5px 8px; border-radius: 6px; font-weight: 600; color: #1E2B4B;")
+
+        # Populate note selector
+        if self.all_db_notes:
+            for n in self.all_db_notes:
+                t = n.get("title", "Untitled Note")
+                dur = n.get("duration", "00:00")
+                date = n.get("created_at", "")
+                display = f"{t} ({dur} • {date})"
+                self.combo_notes.addItem(display, t)
+        else:
+            self.combo_notes.addItem(self.note_title, self.note_title)
+
+        # Pre-select matching note
+        cur_idx = 0
+        for i in range(self.combo_notes.count()):
+            if self.combo_notes.itemData(i) == self.note_title or self.note_title in self.combo_notes.itemText(i):
+                cur_idx = i
+                break
+        self.combo_notes.setCurrentIndex(cur_idx)
+        self.combo_notes.currentIndexChanged.connect(self._on_note_selection_changed)
+
+        n_layout.addWidget(self.combo_notes)
+
+        self.lbl_preview = QLabel()
+        self.lbl_preview.setStyleSheet("color: #5C6479; font-size: 11px;")
+        self._update_preview_label()
+        n_layout.addWidget(self.lbl_preview)
+
+        layout.addWidget(note_card)
 
         # 1. Format Picker Radio Buttons
         fmt_card = QFrame()
         fmt_card.setObjectName("cardFrame")
         f_layout = QVBoxLayout(fmt_card)
-        f_layout.setContentsMargins(14, 12, 14, 12)
-        f_layout.setSpacing(8)
+        f_layout.setContentsMargins(14, 10, 14, 10)
+        f_layout.setSpacing(6)
 
-        f_layout.addWidget(QLabel("<b>1. Select Export Format:</b>"))
+        f_layout.addWidget(QLabel("<b>2. Select Export Format:</b>"))
         
         self.fmt_group = QButtonGroup(self)
-        self.rb_pdf = QRadioButton("PDF Document (.pdf) — Formatted publication styling & tables")
+        self.rb_pdf = QRadioButton("PDF Document (.pdf) — Publication styled with tables & headers")
         self.rb_docx = QRadioButton("Word Document (.docx) — Editable Microsoft Word document")
-        self.rb_txt = QRadioButton("Plain Text (.txt) — Markdown & formatted text file")
+        self.rb_txt = QRadioButton("Plain Text (.txt) — Markdown & formatted transcription text")
         self.rb_pdf.setChecked(True)
 
         self.fmt_group.addButton(self.rb_pdf)
@@ -136,13 +229,13 @@ class ExportDialog(QDialog):
         sec_card = QFrame()
         sec_card.setObjectName("cardFrame")
         s_layout = QVBoxLayout(sec_card)
-        s_layout.setContentsMargins(14, 12, 14, 12)
-        s_layout.setSpacing(8)
+        s_layout.setContentsMargins(14, 10, 14, 10)
+        s_layout.setSpacing(6)
 
-        s_layout.addWidget(QLabel("<b>2. Sections to Include:</b>"))
+        s_layout.addWidget(QLabel("<b>3. Sections to Include:</b>"))
         
-        self.chk_summary = QCheckBox("Include AI Executive Summary & Key Points")
-        self.chk_tasks = QCheckBox("Include Extracted Action Items & Tasks")
+        self.chk_summary = QCheckBox("Include AI Executive Summary & Context Takeaways")
+        self.chk_tasks = QCheckBox("Include Extracted Action Items & Tasks Table")
         self.chk_transcript = QCheckBox("Include Full Audio Transcript with Timestamps")
         self.chk_metadata = QCheckBox("Include Note Metadata (Date, Duration, Category Tags)")
         
@@ -162,19 +255,19 @@ class ExportDialog(QDialog):
         path_card = QFrame()
         path_card.setObjectName("cardFrame")
         p_layout = QVBoxLayout(path_card)
-        p_layout.setContentsMargins(14, 12, 14, 12)
+        p_layout.setContentsMargins(14, 10, 14, 10)
         p_layout.setSpacing(6)
 
-        p_layout.addWidget(QLabel("<b>3. Save Location:</b>"))
+        p_layout.addWidget(QLabel("<b>4. Save Location:</b>"))
         
         path_row = QHBoxLayout()
         self.txt_path = QLineEdit()
         self.txt_path.setPlaceholderText("Select export destination file...")
         self.txt_path.setText(self._generate_default_filepath("pdf"))
-        self.txt_path.setStyleSheet("background: #FFFFFF; border: 1px solid #E2DDD3; padding: 6px 10px; border-radius: 6px;")
+        self.txt_path.setStyleSheet("background: #FFFFFF; border: 1px solid #E2DDD3; padding: 5px 8px; border-radius: 6px;")
 
         btn_browse = QPushButton("Browse...")
-        btn_browse.setStyleSheet("padding: 6px 12px; font-weight: 700; background: #FFFFFF; border: 1px solid #E2DDD3; border-radius: 6px;")
+        btn_browse.setStyleSheet("padding: 5px 12px; font-weight: 700; background: #FFFFFF; border: 1px solid #E2DDD3; border-radius: 6px;")
         btn_browse.clicked.connect(self._on_browse_clicked)
 
         path_row.addWidget(self.txt_path, stretch=1)
@@ -197,6 +290,23 @@ class ExportDialog(QDialog):
         btn_row.addWidget(self.btn_export)
 
         layout.addLayout(btn_row)
+
+    def _update_preview_label(self):
+        t_len = len(self.note_data.get("transcript", ""))
+        s_len = len(self.note_data.get("summary", ""))
+        tasks_count = len(self.note_data.get("tasks", []))
+        self.lbl_preview.setText(
+            f"Context: Transcript ({t_len} chars) • AI Summary ({s_len} chars) • Tasks ({tasks_count} items)"
+        )
+
+    def _on_note_selection_changed(self, idx: int):
+        selected_title = self.combo_notes.itemData(idx)
+        if selected_title:
+            self.note_title = selected_title
+            self.note_data = self._fetch_db_note_data(selected_title)
+            self._update_preview_label()
+            fmt = self._get_selected_format()
+            self.txt_path.setText(self._generate_default_filepath(fmt))
 
     def _get_selected_format(self) -> str:
         if self.rb_pdf.isChecked():

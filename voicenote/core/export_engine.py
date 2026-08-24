@@ -164,6 +164,21 @@ class ExportEngine:
             transcript = "\n".join(str(item) for item in transcript)
         data["transcript"] = str(transcript)
 
+        # Contextual Summary from Transcription
+        summary = data.get("summary") or ""
+        if not summary and data["transcript"]:
+            plain_lines = []
+            for l in data["transcript"].split("\n"):
+                l_str = l.strip()
+                if l_str.startswith("[") and "]" in l_str:
+                    l_str = l_str[l_str.find("]") + 1:].strip()
+                if l_str:
+                    plain_lines.append(l_str)
+            if plain_lines:
+                extracted = " ".join(plain_lines)
+                summary = extracted[:250] + ("..." if len(extracted) > 250 else "")
+        data["summary"] = summary
+
         return data
 
     def export_pdf(

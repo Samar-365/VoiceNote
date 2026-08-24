@@ -41,6 +41,7 @@ class MainWindow(QMainWindow):
         
         self.db = get_db()
         self.worker = None
+        self.current_selected_note_title = None
         self.init_ui()
 
     def init_ui(self):
@@ -82,6 +83,7 @@ class MainWindow(QMainWindow):
 
         # View 1: Transcript & Tag Manager View
         self.transcript_view = TranscriptViewWidget()
+        self.transcript_view.export_clicked.connect(self.on_export_note)
         self.stack.addWidget(self.transcript_view)
 
         # View 2: AI Summary & Task Board View
@@ -244,8 +246,25 @@ class MainWindow(QMainWindow):
             self.semantic_search_view.perform_search()
 
     def on_view_note(self, note_title: str):
+        self.current_selected_note_title = note_title
         self.sidebar.on_nav_click(1)
-        self.transcript_view.title_label.setText(f"Note: {note_title}")
+        note_data = self._fetch_full_note_data(note_title)
+        transcript_text = note_data.get("transcript") or note_data.get("summary") or "No transcript available."
+        tags = note_data.get("tags", [])
+        meta_str = f"Date: {note_data.get('created_at', 'Today')}  •  Duration: {note_data.get('duration', '00:00')}  •  Category: {note_data.get('category', 'General')}"
+        self.transcript_view.set_note_transcript(
+            title=note_title,
+            transcript_text=transcript_text,
+            tags=tags,
+            metadata_info=meta_str
+        )
+        if note_data.get("summary"):
+            self.summary_task_view.set_ai_data(
+                summary=note_data.get("summary"),
+                key_points=note_data.get("key_points", []),
+                tasks=note_data.get("tasks", []),
+                model_name="Gemini 2.5 Flash"
+            )
 
     def _fetch_full_note_data(self, note_title: str) -> dict:
         """Fetch all related DB entities (transcript, AI summary, tasks) for a note."""
@@ -288,12 +307,15 @@ class MainWindow(QMainWindow):
             return {"title": note_title}
 
     def on_export_note(self, note_title: str):
+        self.current_selected_note_title = note_title
         note_data = self._fetch_full_note_data(note_title)
         dialog = ExportDialog(note_data=note_data, note_title=note_title, parent=self)
         dialog.exec()
 
     def show_export_dialog(self):
-        dialog = ExportDialog(parent=self)
+        title = self.current_selected_note_title
+        note_data = self._fetch_full_note_data(title) if title else None
+        dialog = ExportDialog(note_data=note_data, note_title=title, parent=self)
         dialog.exec()
 
     def show_profile_dialog(self):
@@ -349,9 +371,32 @@ class MainWindow(QMainWindow):
     def on_pipeline_success(self, data: dict):
         self.status_bar.showMessage("AI Processing Complete • Saved to Database")
         self.refresh_notes_list()
+
+        # Populate newly transcribed note into transcript and summary views
+        title = data.get("title", "Voice Note")
+        self.current_selected_note_title = title
+        transcript_text = data.get("transcript", "")
+        duration = data.get("duration", "00:00")
+        ai_data = data.get("ai_data") or {}
+
+        self.transcript_view.set_note_transcript(
+            title=title,
+            transcript_text=transcript_text,
+            tags=ai_data.get("tags", ["#VoiceNote"]),
+            metadata_info=f"Recorded Just Now  •  Duration: {duration}  •  Format: WAV 16kHz  •  Engine: Whisper & Gemini"
+        )
+
+        if ai_data.get("summary"):
+            self.summary_task_view.set_ai_data(
+                summary=ai_data.get("summary", ""),
+                key_points=ai_data.get("key_points", []),
+                tasks=ai_data.get("tasks", []),
+                model_name="Gemini 2.5 Flash"
+            )
+
         QMessageBox.information(
             self, "Pipeline Complete",
-            f"Speech transcription & Gemini AI analysis completed for note:\n\n'{data.get('title', 'Voice Note')}'"
+            f"Speech transcription & Gemini AI analysis completed for note:\n\n'{title}'"
         )
         self.sidebar.on_nav_click(1)
 

@@ -27,8 +27,8 @@ class TranscriptAnalysis(BaseModel):
 class AIEngine:
     """Interface between VoiceNote and the Gemini LLM."""
 
-    def __init__(self, model="gemini-3.1-flash-lite"):
-        self.model = model
+    def __init__(self, model="gemini-2.5-flash"):
+        self.model = os.getenv("GEMINI_MODEL", model)
 
         api_key = os.getenv("GEMINI_API_KEY")
 

@@ -33,49 +33,82 @@ class PipelineWorker(QThread):
 
             # Step 1: STT Transcription
             if self.audio_path and Path(self.audio_path).exists():
-                self.progress.emit("Transcribing audio recording...")
+                self.progress.emit("Transcribing audio recording with Speech-to-Text...")
                 
+                # Calculate actual audio duration
+                try:
+                    import wave
+                    with wave.open(str(self.audio_path), 'rb') as wf:
+                        frames = wf.getnframes()
+                        rate = wf.getframerate()
+                        duration_sec = int(frames / float(rate))
+                        mins, secs = divmod(duration_sec, 60)
+                        duration_str = f"{mins:02d}m {secs:02d}s"
+                except Exception:
+                    duration_str = "00:30"
+
                 # Use Groq if API key available, otherwise fallback to local Faster-Whisper
+                segments = []
                 if GROQ_API_KEY:
                     try:
                         stt = GroqSTTEngine()
                         res = stt.transcribe(self.audio_path)
-                        full_transcript_text = res.get("text", "")
+                        full_transcript_text = res.get("text", "").strip()
+                        detected_lang = res.get("language") or "en"
+                        segments = res.get("segments", [])
                     except Exception as e:
                         self.progress.emit(f"Groq STT fallback to local Whisper: {str(e)}")
                         stt = STTEngine()
                         res = stt.transcribe(self.audio_path)
-                        detected_lang = res.get("language", "en")
+                        detected_lang = res.get("language") or "en"
                         segments = res.get("segments", [])
-                        full_transcript_text = " ".join([s.get("text", "") for s in segments])
+                        full_transcript_text = " ".join([s.get("text", "") for s in segments]).strip()
                 else:
                     stt = STTEngine()
                     res = stt.transcribe(self.audio_path)
-                    detected_lang = res.get("language", "en")
+                    detected_lang = res.get("language") or "en"
                     segments = res.get("segments", [])
-                    full_transcript_text = " ".join([s.get("text", "") for s in segments])
+                    full_transcript_text = " ".join([s.get("text", "") for s in segments]).strip()
+
+                # Build timestamped transcript if segments exist
+                if segments:
+                    formatted_lines = []
+                    for s in segments:
+                        txt = s.get("text", "").strip()
+                        if txt:
+                            start_sec = s.get("start", 0.0)
+                            m, sec = divmod(int(start_sec), 60)
+                            formatted_lines.append(f"[{m:02d}:{sec:02d}] {txt}")
+                    if formatted_lines:
+                        formatted_transcript = "\n".join(formatted_lines)
+                    else:
+                        formatted_transcript = full_transcript_text
+                else:
+                    formatted_transcript = full_transcript_text
 
             elif self.raw_transcript:
-                full_transcript_text = self.raw_transcript
+                full_transcript_text = self.raw_transcript.strip()
+                formatted_transcript = full_transcript_text
+                duration_str = "00:15"
             else:
                 raise ValueError("Neither audio file nor transcript text was provided.")
 
             if not full_transcript_text.strip():
-                raise ValueError("Transcription produced no speech text.")
+                raise ValueError("Transcription produced no speech text. Please verify microphone input.")
 
             # Save Initial Note & Raw Transcript
             note_obj = Note(
                 title=self.title,
-                duration="02m 15s",
+                duration=duration_str,
                 audio_path=self.audio_path,
-                category="General"
+                category=detected_lang.upper() if detected_lang else "General"
             )
             note_id = db.add_note(note_obj)
 
             transcript_obj = Transcript(
                 note_id=note_id,
                 raw_text=full_transcript_text,
-                cleaned_text=full_transcript_text,
+                cleaned_text=formatted_transcript,
                 language=detected_lang
             )
             db.save_transcript(transcript_obj)
@@ -88,16 +121,20 @@ class PipelineWorker(QThread):
                     ai_engine = AIEngine()
                     analysis_res = ai_engine.analyze_transcript(full_transcript_text, language=detected_lang)
                     
+                    summary_text = analysis_res.summary
+                    key_points = analysis_res.key_points
+                    tasks_list = analysis_res.tasks
+                    
                     summary_obj = AISummary(
                         note_id=note_id,
-                        summary=analysis_res.summary,
-                        key_points=analysis_res.key_points,
+                        summary=summary_text,
+                        key_points=key_points,
                         sentiment="Positive",
-                        main_topics=[analysis_res.language.upper()]
+                        main_topics=[f"#{analysis_res.language.upper()}", "#VoiceNote"]
                     )
                     db.save_ai_summary(summary_obj)
 
-                    for t in analysis_res.tasks:
+                    for t in tasks_list:
                         task_obj = Task(
                             note_id=note_id,
                             title=t.task,
@@ -109,9 +146,10 @@ class PipelineWorker(QThread):
                         db.save_task(task_obj)
 
                     ai_data = {
-                        "summary": analysis_res.summary,
-                        "key_points": analysis_res.key_points,
-                        "tasks": [t.model_dump() for t in analysis_res.tasks]
+                        "summary": summary_text,
+                        "key_points": key_points,
+                        "tasks": [t.model_dump() for t in tasks_list],
+                        "tags": [f"#{analysis_res.language.upper()}", "#VoiceNote"]
                     }
 
                 except Exception as ai_err:
@@ -119,26 +157,39 @@ class PipelineWorker(QThread):
                     # Save basic summary fallback
                     summary_obj = AISummary(
                         note_id=note_id,
-                        summary=full_transcript_text[:200] + "...",
-                        key_points=["Audio captured successfully", "Pending detailed LLM analysis"],
+                        summary=full_transcript_text[:200] + ("..." if len(full_transcript_text) > 200 else ""),
+                        key_points=["Audio captured & transcribed successfully"],
                         sentiment="Neutral",
-                        main_topics=["Speech Capture"]
+                        main_topics=["#VoiceNote"]
                     )
                     db.save_ai_summary(summary_obj)
+                    ai_data = {
+                        "summary": summary_obj.summary,
+                        "key_points": summary_obj.key_points,
+                        "tasks": [],
+                        "tags": ["#VoiceNote"]
+                    }
             else:
                 summary_obj = AISummary(
                     note_id=note_id,
-                    summary=full_transcript_text[:200] + "...",
-                    key_points=["Recorded note saved"],
+                    summary=full_transcript_text[:200] + ("..." if len(full_transcript_text) > 200 else ""),
+                    key_points=["Recorded note saved locally"],
                     sentiment="Neutral",
-                    main_topics=["Offline Note"]
+                    main_topics=["#OfflineNote"]
                 )
                 db.save_ai_summary(summary_obj)
+                ai_data = {
+                    "summary": summary_obj.summary,
+                    "key_points": summary_obj.key_points,
+                    "tasks": [],
+                    "tags": ["#OfflineNote"]
+                }
 
             self.finished.emit({
                 "note_id": note_id,
                 "title": self.title,
-                "transcript": full_transcript_text,
+                "duration": duration_str,
+                "transcript": formatted_transcript,
                 "ai_data": ai_data
             })
 

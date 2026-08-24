@@ -57,8 +57,9 @@ class GroqSTTEngine:
                 "text": text.strip()
             })
 
+        detected_lang = getattr(transcription, "language", None) or language
         return {
-            "language": language,
+            "language": detected_lang,
             "segments": segments,
             "text": transcription.text
         }
