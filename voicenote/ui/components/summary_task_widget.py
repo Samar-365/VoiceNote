@@ -33,11 +33,11 @@ class SummaryTaskWidget(QWidget):
         stitle = QLabel("AI Executive Summary")
         stitle.setObjectName("titleLabel")
         
-        model_badge = QLabel("Ollama • llama3:8b")
-        model_badge.setObjectName("badgePurple")
+        self.model_badge = QLabel("Gemini • 2.5 Flash")
+        self.model_badge.setObjectName("badgePurple")
 
         header_row.addWidget(stitle)
-        header_row.addWidget(model_badge)
+        header_row.addWidget(self.model_badge)
         header_row.addStretch()
 
         btn_regen = QPushButton("Re-generate")
@@ -49,17 +49,11 @@ class SummaryTaskWidget(QWidget):
         s_layout.addSpacing(8)
 
         # Overview Content
-        summary_text = QLabel(
-            "<b>Overview:</b> The team aligned on building a privacy-first, local-only desktop application using PySide6. "
-            "All speech recognition (Whisper) and LLM inference (Ollama) will run locally on client machines.<br><br>"
-            "<b>Key Decisions:</b><br>"
-            "• Use <b>PySide6 QThreads</b> to prevent UI freeze during audio transcription.<br>"
-            "• Utilize <b>ChromaDB</b> for indexing note chunk embeddings for instant semantic search.<br>"
-            "• Provide seamless <b>PDF, DOCX, and TXT</b> export options directly from the home dashboard."
-        )
-        summary_text.setWordWrap(True)
-        summary_text.setStyleSheet("color: #5C6479; font-size: 13px; line-height: 1.6;")
-        s_layout.addWidget(summary_text)
+        self.summary_text_lbl = QLabel()
+        self.summary_text_lbl.setWordWrap(True)
+        self.summary_text_lbl.setStyleSheet("color: #5C6479; font-size: 13px; line-height: 1.6;")
+        self.load_sample_summary()
+        s_layout.addWidget(self.summary_text_lbl)
 
         main_layout.addWidget(summary_card)
 
@@ -166,5 +160,47 @@ class SummaryTaskWidget(QWidget):
             })
             self.render_tasks()
 
+    def load_sample_summary(self):
+        self.summary_text_lbl.setText(
+            "<b>Overview:</b> The team aligned on building a privacy-first, local-only desktop application using PySide6. "
+            "All speech recognition (Whisper) and LLM inference (Ollama) will run locally on client machines.<br><br>"
+            "<b>Key Decisions:</b><br>"
+            "• Use <b>PySide6 QThreads</b> to prevent UI freeze during audio transcription.<br>"
+            "• Utilize <b>ChromaDB</b> for indexing note chunk embeddings for instant semantic search.<br>"
+            "• Provide seamless <b>PDF, DOCX, and TXT</b> export options directly from the home dashboard."
+        )
+
+    def set_ai_data(self, summary: str, key_points: list = None, tasks: list = None, model_name: str = "Gemini 2.5 Flash"):
+        """Dynamically load AI summary and extracted tasks for a note."""
+        self.model_badge.setText(f"AI • {model_name}")
+        
+        kp_html = ""
+        if key_points:
+            kp_items = "".join([f"<li>{kp}</li>" for kp in key_points])
+            kp_html = f"<br><br><b>Key Takeaways:</b><ul>{kp_items}</ul>"
+
+        self.summary_text_lbl.setText(
+            f"<b>Executive Summary:</b> {summary}{kp_html}"
+        )
+
+        if tasks is not None:
+            self.tasks = []
+            for t in tasks:
+                if isinstance(t, dict):
+                    self.tasks.append({
+                        "desc": t.get("desc") or t.get("description") or t.get("title") or "Task item",
+                        "priority": (t.get("priority") or "MEDIUM").upper(),
+                        "assignee": t.get("assignee") or t.get("owner") or "Unassigned",
+                        "done": t.get("done") or (t.get("status", "").lower() == "completed"),
+                    })
+                elif hasattr(t, "title"):
+                    self.tasks.append({
+                        "desc": getattr(t, "title", "Task item"),
+                        "priority": getattr(t, "priority", "MEDIUM").upper(),
+                        "assignee": getattr(t, "assignee", "Unassigned"),
+                        "done": getattr(t, "status", "").lower() == "completed",
+                    })
+            self.render_tasks()
+
     def reanalyze(self):
-        QMessageBox.information(self, "AI Summary", "Summary and action items re-generated via Ollama llama3:8b.")
+        QMessageBox.information(self, "AI Summary", "Summary and action items re-generated via Gemini AI.")
