@@ -247,15 +247,54 @@ class MainWindow(QMainWindow):
         self.sidebar.on_nav_click(1)
         self.transcript_view.title_label.setText(f"Note: {note_title}")
 
+    def _fetch_full_note_data(self, note_title: str) -> dict:
+        """Fetch all related DB entities (transcript, AI summary, tasks) for a note."""
+        if not self.db:
+            return {"title": note_title}
+
+        try:
+            all_notes = self.db.get_all_notes()
+            target = next((n for n in all_notes if n.get("title") == note_title), None)
+            if not target:
+                return {"title": note_title}
+
+            note_id = target.get("id")
+            transcript_data = self.db.get_transcript(note_id) if note_id else None
+            summary_data = self.db.get_ai_summary(note_id) if note_id else None
+            all_tasks = self.db.get_all_tasks() if note_id else []
+            note_tasks = [t for t in all_tasks if t.get("note_id") == note_id]
+
+            tags = target.get("main_topics") or target.get("tags") or [target.get("category", "General")]
+            if summary_data and summary_data.get("main_topics"):
+                tags = summary_data.get("main_topics")
+
+            return {
+                "id": note_id,
+                "title": target.get("title", note_title),
+                "created_at": target.get("created_at", "Today"),
+                "duration": target.get("duration", "00:00"),
+                "category": target.get("category", "General"),
+                "tags": tags,
+                "summary": summary_data.get("summary", target.get("summary", "")) if summary_data else target.get("summary", ""),
+                "key_points": summary_data.get("key_points", target.get("key_points", [])) if summary_data else target.get("key_points", []),
+                "sentiment": summary_data.get("sentiment", "Neutral") if summary_data else "Neutral",
+                "tasks": note_tasks,
+                "transcript": (
+                    (transcript_data.get("cleaned_text") or transcript_data.get("raw_text"))
+                    if transcript_data else target.get("summary", "")
+                ),
+            }
+        except Exception:
+            return {"title": note_title}
+
     def on_export_note(self, note_title: str):
-        dialog = ExportDialog(note_title=note_title, parent=self)
-        if dialog.exec():
-            QMessageBox.information(self, "Export Success", f"Successfully exported '{note_title}' to file.")
+        note_data = self._fetch_full_note_data(note_title)
+        dialog = ExportDialog(note_data=note_data, note_title=note_title, parent=self)
+        dialog.exec()
 
     def show_export_dialog(self):
         dialog = ExportDialog(parent=self)
-        if dialog.exec():
-            QMessageBox.information(self, "Export Success", "Successfully exported selected note.")
+        dialog.exec()
 
     def show_profile_dialog(self):
         dialog = ProfileDialog(user_data=self.current_user, parent=self)

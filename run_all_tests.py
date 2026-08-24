@@ -99,6 +99,40 @@ def run_gui_import_tests():
         return False
 
 
+def run_export_engine_tests():
+    logger.info("--- Testing Export Engine (PDF, Word DOCX, TXT) ---")
+    try:
+        from tests.test_export_engine import TestExportEngine
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestExportEngine)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] Export Engine (PDF, DOCX, TXT) tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Export Engine tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Export Engine test failed: {e}")
+        return False
+
+
+def run_auth_tests():
+    logger.info("--- Testing Authentication Layer (Login / Registration) ---")
+    try:
+        from tests.test_auth import TestUserAuthentication
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestUserAuthentication)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] User authentication tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Auth tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Auth tests failed: {e}")
+        return False
+
+
 def main():
     print("=" * 60)
     print("           VOICENOTE COMPREHENSIVE TEST SUITE           ")
@@ -106,8 +140,10 @@ def main():
     
     results = [
         ("Database Layer", run_db_tests()),
+        ("User Authentication", run_auth_tests()),
         ("Text Cleaner Engine", run_text_cleaner_tests()),
         ("Audio Recording Storage", run_audio_recording_tests()),
+        ("Export Engine (PDF/DOCX/TXT)", run_export_engine_tests()),
         ("AI Engine Validation", run_ai_engine_tests()),
         ("GUI & Service Workers", run_gui_import_tests()),
     ]
