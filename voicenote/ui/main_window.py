@@ -123,13 +123,23 @@ class MainWindow(QMainWindow):
         stats_row = QHBoxLayout()
         stats_row.setSpacing(12)
 
-        total_notes = self.db.get_note_count() if self.db else 24
-        tasks_count = len(self.db.get_all_tasks()) if self.db else 5
+        total_notes = self.db.get_note_count() if self.db else 0
+        tasks_count = len(self.db.get_all_tasks()) if self.db else 0
+        all_notes = self.db.get_all_notes() if self.db else []
+        
+        try:
+            from voicenote.core.analytics_engine import AnalyticsEngine
+            tot_sec = sum(AnalyticsEngine.parse_duration_to_seconds(n.get("duration")) for n in all_notes)
+            formatted_tot = AnalyticsEngine.format_seconds_to_human(tot_sec)
+            avg_str = AnalyticsEngine.format_seconds_to_human(tot_sec / total_notes) if total_notes > 0 else "0m 00s"
+        except Exception:
+            formatted_tot = "0m 00s"
+            avg_str = "0m 00s"
 
         stats_data = [
-            ("Total Voice Notes", f"{total_notes} Notes", "+3 Today", "badgePurple"),
-            ("Recorded Audio", "15m 27s", "Avg 5m/note", "badgeCyan"),
-            ("Pending Tasks", f"{tasks_count} Tasks", "Active", "badgeAmber"),
+            ("Total Voice Notes", f"{total_notes} Notes", f"{total_notes} recorded", "badgePurple"),
+            ("Recorded Audio", formatted_tot, f"Avg {avg_str} / note", "badgeCyan"),
+            ("Pending Tasks", f"{tasks_count} Tasks", "Active" if tasks_count > 0 else "None pending", "badgeAmber"),
             ("Local AI Privacy", "Active", "Whisper & Gemini", "badgeActive"),
         ]
 
@@ -201,30 +211,24 @@ class MainWindow(QMainWindow):
 
         db_notes = self.db.get_all_notes() if self.db else []
         if not db_notes:
-            # Display sample notes if database is empty
-            db_notes = [
-                {
-                    "title": "Sprint Planning & Local AI Architecture",
-                    "created_at": "Today, 02:30 PM",
-                    "duration": "04m 32s",
-                    "summary": "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, and ChromaDB vector store integration.",
-                    "main_topics": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"]
-                },
-                {
-                    "title": "PostgreSQL Schema & Persistence Review",
-                    "created_at": "Yesterday, 04:15 PM",
-                    "duration": "12m 40s",
-                    "summary": "Reviewed user profiles, transcript relational tables, tag associations, and SQLAlchemy model migrations.",
-                    "main_topics": ["#PostgreSQL", "#Database"]
-                },
-                {
-                    "title": "Task Extraction & AI Prompt Formatting",
-                    "created_at": "Aug 12, 11:00 AM",
-                    "duration": "08m 15s",
-                    "summary": "Defined JSON structured outputs for Ollama task extraction, priority categorization, and assignee mapping.",
-                    "main_topics": ["#Tasks", "#Ollama-AI", "#High-Priority"]
-                }
-            ]
+            empty_frame = QFrame()
+            empty_frame.setObjectName("cardFrame")
+            e_lay = QVBoxLayout(empty_frame)
+            e_lay.setContentsMargins(24, 32, 24, 32)
+            e_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_title = QLabel("No Voice Notes Recorded Yet")
+            e_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
+            e_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_sub = QLabel("Record audio using the microphone above or import an audio file to generate transcripts and AI summaries.")
+            e_sub.setStyleSheet("font-size: 13px; color: #5C6479; margin-top: 4px;")
+            e_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_lay.addWidget(e_title)
+            e_lay.addWidget(e_sub)
+            self.notes_container.addWidget(empty_frame)
+            return
 
         for note in db_notes:
             tags = note.get("main_topics", ["#VoiceNote"])

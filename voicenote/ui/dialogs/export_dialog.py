@@ -65,7 +65,7 @@ class ExportDialog(QDialog):
         elif self.all_db_notes:
             self.note_data = self._fetch_db_note_data(self.all_db_notes[0].get("title", ""))
         else:
-            self.note_data = self._get_fallback_note_data("Sprint Planning & Local AI Architecture")
+            self.note_data = self._get_fallback_note_data("Voice Note")
 
         self.note_title = self.note_data.get("title", "Voice Note")
         self.init_ui()
@@ -115,35 +115,17 @@ class ExportDialog(QDialog):
             return self._get_fallback_note_data(note_title)
 
     def _get_fallback_note_data(self, title: str) -> Dict[str, Any]:
-        """Generate structured note data if standalone note was passed without DB context."""
+        """Generate clean structured note data if standalone note was passed without DB context."""
         return {
-            "title": title,
+            "title": title or "Voice Note",
             "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "duration": "04m 32s",
-            "category": "Sprint-Planning",
-            "tags": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"],
-            "summary": (
-                "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, "
-                "and ChromaDB vector store integration for semantic retrieval."
-            ),
-            "key_points": [
-                "Achieved 100% offline transcription capability via faster-whisper.",
-                "Structured action item extraction into JSON schema via Ollama/Gemini AI.",
-                "Implemented secure PostgreSQL database persistence for user notes.",
-                "Added multi-format export capability (PDF, Word DOCX, Plain Text).",
-            ],
-            "tasks": [
-                {"title": "Implement ReportLab PDF note generator", "priority": "High", "assignee": "Samar", "due_date": "Today", "status": "Completed"},
-                {"title": "Integrate python-docx Word export module", "priority": "High", "assignee": "Samar", "due_date": "Today", "status": "Completed"},
-                {"title": "Run full automated test verification suite", "priority": "Medium", "assignee": "Dev Team", "due_date": "Sprint End", "status": "Pending"},
-            ],
-            "transcript": (
-                "[00:00:05] Host: Welcome team to today's VoiceNote sprint architecture sync.\n"
-                "[00:00:22] Samar: We've finished calibrating the Retro Cream Bento Grid desktop UI.\n"
-                "[00:01:10] Atharv: Whisper STT and Gemini AI task extraction pipelines are fully hooked into PostgreSQL.\n"
-                "[00:01:45] QA Lead: Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?\n"
-                "[00:02:10] Samar: Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options."
-            ),
+            "duration": "00:00",
+            "category": "General",
+            "tags": ["#VoiceNote"],
+            "summary": "No AI summary available for this note.",
+            "key_points": [],
+            "tasks": [],
+            "transcript": "No transcript text recorded.",
         }
 
     def init_ui(self):

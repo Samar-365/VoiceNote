@@ -11,8 +11,9 @@ class TranscriptViewWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.tags = ["#Sprint-Architecture", "#Ollama-AI", "#Local-Whisper", "#High-Priority"]
-        self.current_title = "Sprint Planning & Local AI Architecture"
+        self.tags = []
+        self.current_title = "No Note Selected"
+        self.raw_transcript_text = ""
         self.init_ui()
 
     def init_ui(self):
@@ -30,10 +31,10 @@ class TranscriptViewWidget(QWidget):
         top_row = QHBoxLayout()
         title_v = QVBoxLayout()
         
-        self.title_label = QLabel("Note: Sprint Planning & Local AI Architecture")
+        self.title_label = QLabel("No Note Selected")
         self.title_label.setObjectName("titleLabel")
         
-        self.sub_info = QLabel("Recorded Today at 02:30 PM  •  Duration: 04m 32s  •  Format: WAV 16kHz Mono  •  Engine: faster-whisper")
+        self.sub_info = QLabel("Select a note from the dashboard or record audio to view its transcript.")
         self.sub_info.setObjectName("subtitleLabel")
         
         title_v.addWidget(self.title_label)
@@ -121,31 +122,27 @@ class TranscriptViewWidget(QWidget):
 
     def filter_transcript(self, text: str):
         if not text.strip():
-            self.load_sample_transcript()
+            self.transcript_edit.setPlainText(self.raw_transcript_text or "No transcript available. Select a voice note or record audio.")
             return
         
-        full_text = self.sample_full_html()
-        # Filter paragraphs
-        lines = [
-            "[00:00:02] Samar: Alright team, welcome to the VoiceNote Desktop architecture review. Our main goal today is finalizing the home screen UI and validating our local AI strategy.",
-            "[00:00:15] Lead Engineer: Exactly. We are sticking strictly to local components: faster-whisper for speech-to-text, Ollama running Llama 3 for intelligent summarization and task extraction, and PostgreSQL for note metadata.",
-            "[00:00:34] AI Architect: Also, for semantic search across all voice notes, we'll embed the transcripts using ChromaDB vector store. That way, natural language queries like 'find our discussion on database migration' will instantly return relevant timestamped audio clips.",
-            "[00:01:10] Samar: Awesome. Let's make sure the PySide6 UI feels super fast, responsive, and elegant. No lag during Whisper transcription because all STT and Ollama calls run in background QThreads.",
-            "[00:01:45] QA Lead: Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?",
-            "[00:02:10] Samar: Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options."
-        ]
+        lines = self.raw_transcript_text.split("\n") if self.raw_transcript_text else []
         filtered = [l for l in lines if text.lower() in l.lower()]
         self.transcript_edit.setPlainText("\n\n".join(filtered) if filtered else "No matching dialogue found.")
 
     def set_note_transcript(self, title: str, transcript_text: str, tags: list = None, metadata_info: str = None):
         """Dynamically load and format a note's real transcript in the viewer."""
         self.current_title = title
+        self.raw_transcript_text = transcript_text
         self.title_label.setText(f"Note: {title}")
         if metadata_info:
             self.sub_info.setText(metadata_info)
         if tags is not None:
             self.tags = [f"#{t.lstrip('#')}" for t in tags] if tags else ["#VoiceNote"]
             self.render_tags()
+
+        if not transcript_text or not transcript_text.strip():
+            self.transcript_edit.setHtml("<p style='color: #7D8495; font-style: italic;'>No transcript text recorded for this note.</p>")
+            return
 
         # Format transcript lines with styled timestamps
         formatted_html_lines = []
@@ -165,15 +162,5 @@ class TranscriptViewWidget(QWidget):
         html = f"<div style='line-height: 1.8; color: #1E2B4B; font-size: 13px;'>{''.join(formatted_html_lines)}</div>"
         self.transcript_edit.setHtml(html)
 
-    def sample_full_html(self) -> str:
-        return """<p style='line-height: 1.8; color: #1E2B4B;'>
-<b style='color: #6D59A7;'>[00:00:02] Samar:</b> Alright team, welcome to the VoiceNote Desktop architecture review. Our main goal today is finalizing the home screen UI and validating our local AI strategy.<br><br>
-<b style='color: #6D59A7;'>[00:00:15] Lead Engineer:</b> Exactly. We are sticking strictly to local components: faster-whisper for speech-to-text, Ollama running Llama 3 for intelligent summarization and task extraction, and PostgreSQL for note metadata.<br><br>
-<b style='color: #6D59A7;'>[00:00:34] AI Architect:</b> Also, for semantic search across all voice notes, we'll embed the transcripts using ChromaDB vector store. That way, natural language queries like 'find our discussion on database migration' will instantly return relevant timestamped audio clips.<br><br>
-<b style='color: #6D59A7;'>[00:01:10] Samar:</b> <span style='color: #D97706; font-weight: bold;'>Awesome. Let's make sure the PySide6 UI feels super fast, responsive, and elegant. No lag during Whisper transcription because all STT and Ollama calls run in background QThreads.</span><br><br>
-<b style='color: #6D59A7;'>[00:01:45] QA Lead:</b> Will end users be able to export notes into PDF, DOCX, and plain text TXT files directly from the main dashboard?<br><br>
-<b style='color: #6D59A7;'>[00:02:10] Samar:</b> Yes! Export dialog support for PDF, DOCX, and TXT is built directly into the sidebar and header quick options.
-</p>"""
-
     def load_sample_transcript(self):
-        self.transcript_edit.setHtml(self.sample_full_html())
+        self.transcript_edit.setHtml("<p style='color: #7D8495; font-style: italic; font-size: 13px;'>No voice note selected. Select a note from the Recent Notes feed or record audio to view the transcript.</p>")

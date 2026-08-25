@@ -135,9 +135,6 @@ class DatabaseManager:
         if self.get_user_count() == 0:
             self._seed_default_user()
 
-        if self.get_note_count() == 0:
-            self._seed_sample_data()
-
     def get_user_count(self) -> int:
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
