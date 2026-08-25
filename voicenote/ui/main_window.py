@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
         r_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
         
         btn_clear_all = QPushButton("Remove All Recordings")
-        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 6px;")
+        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 0px;")
         btn_clear_all.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_clear_all.clicked.connect(self.on_delete_all_notes)
 
