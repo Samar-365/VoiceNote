@@ -1,36 +1,36 @@
 # VoiceNote Desktop — Requirements
 
 # GUI Framework
-PySide6
+PySide6>=6.6.0
 
 # Audio Recording & Processing
-sounddevice
-soundfile
-numpy
+sounddevice>=0.4.6
+soundfile>=0.12.1
+numpy>=1.24.0
 
 # Speech-to-Text (STT)
-faster-whisper
-groq
+faster-whisper>=1.0.0
+groq>=0.9.0
 
 # AI & LLM
-google-genai
-requests
+google-genai>=0.1.0
+requests>=2.31.0
 
-# Database & ORM (PostgreSQL)
-# psycopg2-binary>=2.9.9
+# Database & Authentication (PostgreSQL)
+psycopg2-binary>=2.9.9
 # SQLAlchemy>=2.0.0
 
-# Vector Database & Embeddings
+# Vector Database & Semantic Search
 chromadb
 sentence-transformers
 
 # Export Generation (PDF & Word DOCX)
-# reportlab>=4.0.0
-# python-docx>=1.1.0
+reportlab>=4.0.0
+python-docx>=1.1.0
 
 # Validation & Utilities
-pydantic
-python-dotenv
+pydantic>=2.0.0
+python-dotenv>=1.0.0
 
 # Packaging (Optional)
 # pyinstaller>=6.0.0

@@ -55,13 +55,34 @@ def run_ai_engine_tests():
         logger.warning("[SKIP] GEMINI_API_KEY not set in environment. Skipping live Gemini API tests.")
         return True
     try:
-        from tests import test_ai_engine
-        test_ai_engine.test_empty_prompt()
-        test_ai_engine.test_empty_transcript()
-        logger.info("[OK] AI Engine prompt validation passed.")
-        return True
+        from tests.test_ai_engine import TestAIEngine
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestAIEngine)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] AI Engine prompt validation passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] AI Engine tests failed: {result.errors + result.failures}")
+            return False
     except Exception as e:
         logger.error(f"[ERROR] AI Engine test failed: {e}")
+        return False
+
+
+def run_audio_recording_tests():
+    logger.info("--- Testing Audio Recording File Storage (data/recording) ---")
+    try:
+        from tests.test_audio_recording import TestAudioRecordingStorage
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestAudioRecordingStorage)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] Audio recording file storage tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Audio recording file storage tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Audio recording tests failed: {e}")
         return False
 
 
@@ -78,6 +99,40 @@ def run_gui_import_tests():
         return False
 
 
+def run_export_engine_tests():
+    logger.info("--- Testing Export Engine (PDF, Word DOCX, TXT) ---")
+    try:
+        from tests.test_export_engine import TestExportEngine
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestExportEngine)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] Export Engine (PDF, DOCX, TXT) tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Export Engine tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Export Engine test failed: {e}")
+        return False
+
+
+def run_auth_tests():
+    logger.info("--- Testing Authentication Layer (Login / Registration) ---")
+    try:
+        from tests.test_auth import TestUserAuthentication
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestUserAuthentication)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] User authentication tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Auth tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Auth tests failed: {e}")
+        return False
+
+
 def main():
     print("=" * 60)
     print("           VOICENOTE COMPREHENSIVE TEST SUITE           ")
@@ -85,7 +140,10 @@ def main():
     
     results = [
         ("Database Layer", run_db_tests()),
+        ("User Authentication", run_auth_tests()),
         ("Text Cleaner Engine", run_text_cleaner_tests()),
+        ("Audio Recording Storage", run_audio_recording_tests()),
+        ("Export Engine (PDF/DOCX/TXT)", run_export_engine_tests()),
         ("AI Engine Validation", run_ai_engine_tests()),
         ("GUI & Service Workers", run_gui_import_tests()),
     ]

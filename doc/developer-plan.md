@@ -19,8 +19,8 @@ The team will work in parallel with clear ownership boundaries. Tejas will serve
 | Developer | Primary Role | Approx. Ownership |
 | --- | --- | --- |
 | Tejas | Architecture, core app orchestration, integrations, release readiness | 30-35% |
-| Samar | UI/UX, recording workflow, transcript experience, settings, export, analytics | 35-40% |
-| Atharv | Audio pipeline, STT, summarization, task extraction, vector engine/search, data models | 30-35% |
+| Samar | UI/UX, audio engine & recording workflow, transcript experience, settings, export, analytics | 35-40% |
+| Atharv | STT, AI summarization, task extraction, vector engine/search, data models | 30-35% |
 
 This keeps Tejas focused on the critical backbone without taking all implementation work himself.
 
@@ -52,11 +52,12 @@ Tejas will own the foundation and integration layer of the product.
 - service orchestration layer
 - packaging and installer readiness
 
-### Samar — Front-End, UX, Export & Analytics Lead
+### Samar — Front-End, UX, Audio Engine, Export & Analytics Lead
 
-Samar will own the UI experience, user-facing workflows, export generation, and analytics engine.
+Samar will own the UI experience, audio capture engine, user-facing workflows, export generation, and analytics engine.
 
 #### Responsibilities
+- Implement hardware microphone audio capture engine (`core/audio_engine.py`) and recording file storage
 - Design and implement the modern PySide6 desktop UI
 - Build the main window, sidebar, top bar, and dashboard layout
 - Design the recorder screen, waveform, and recording controls
@@ -69,6 +70,7 @@ Samar will own the UI experience, user-facing workflows, export generation, and 
 - Implement analytics calculations and note metadata aggregation
 
 #### Priority modules
+- core/audio_engine.py
 - ui/main_window.py
 - ui/components/audio_recorder_widget.py
 - ui/components/transcript_view_widget.py
@@ -79,12 +81,11 @@ Samar will own the UI experience, user-facing workflows, export generation, and 
 - core/analytics_engine.py
 - modern theme and QSS styling
 
-### Atharv — AI, Vector Search, Data, and Audio Pipeline Lead
+### Atharv — AI, Vector Search, and STT Pipeline Lead
 
-Atharv will own the audio processing, STT pipeline, AI summarization, vector engine, semantic search backend, and data persistence workflows.
+Atharv will own the STT pipeline, AI summarization, vector engine, semantic search backend, and data persistence workflows.
 
 #### Responsibilities
-- Implement audio processing and file management logic
 - Build STT pipeline with faster-whisper and Groq STT integration
 - Implement LLM summarization and task extraction workflows
 - Build semantic search indexing, embeddings, and vector retrieval
@@ -92,7 +93,6 @@ Atharv will own the audio processing, STT pipeline, AI summarization, vector eng
 - Support database models and persistence operations for AI-generated content
 
 #### Priority modules
-- core/audio_engine.py
 - core/stt_engine.py
 - core/groq_stt_engine.py
 - core/ai_engine.py
@@ -133,13 +133,13 @@ Atharv will own the audio processing, STT pipeline, AI summarization, vector eng
 - app status and service state handling
 
 #### Samar
+- microphone audio capture engine (`audio_engine.py`) and recording file storage
 - recorder widget implementation
 - transcript view and editing UI
 - tag UI and note cards
 - note dashboard screens
 
 #### Atharv
-- audio input capture and output management
 - transcription pipeline and transcript storage
 - note metadata handling and data persistence
 
@@ -204,8 +204,8 @@ Atharv will own the audio processing, STT pipeline, AI summarization, vector eng
 ## 5. Work Coordination Rules
 
 1. Tejas is the final technical owner for architecture and integration.
-2. Samar owns UI implementation quality, workflow usability, export, and analytics.
-3. Atharv owns AI/audio processing quality, transcription/summarization functionality, and vector search/retrieval engine.
+2. Samar owns UI implementation quality, audio recording engine, workflow usability, export, and analytics.
+3. Atharv owns AI pipeline quality, transcription/summarization functionality, and vector search/retrieval engine.
 4. Tejas should review all cross-layer integration before merge.
 5. Samar and Atharv should create feature branches and raise integration issues early.
 6. Tejas does not need to do all development work; he should focus on architecture, core app logic, and module coordination.
@@ -217,7 +217,7 @@ Atharv will own the audio processing, STT pipeline, AI summarization, vector eng
 
 - Daily standup: 15-20 minutes
 - Tejas reviews architecture and dependency contracts daily
-- Samar reviews UI consistency, export flows, and feature integration
+- Samar reviews UI consistency, audio capture, export flows, and feature integration
 - Atharv reviews STT, AI pipeline correctness, vector search retrieval, and output quality
 - End-of-sprint review for functionality, bugs, and release readiness
 
@@ -228,8 +228,8 @@ Atharv will own the audio processing, STT pipeline, AI summarization, vector eng
 By the end of the project:
 
 - Tejas will own the application backbone and core technical health
-- Samar will deliver the modern user experience, export engine, and analytics
-- Atharv will deliver the audio processing, STT, vector search engine, and AI intelligence pipeline
+- Samar will deliver the modern user experience, audio recording engine, export engine, and analytics
+- Atharv will deliver the STT, vector search engine, and AI intelligence pipeline
 
 This distribution ensures a balanced and productive team model while keeping Tejas as the primary technical leader rather than the only implementer.
 
@@ -238,8 +238,8 @@ This distribution ensures a balanced and productive team model while keeping Tej
 ## 8. Recommended Execution Summary
 
 - Tejas: architecture + login + integration + release leadership
-- Samar: modern UI + recorder + transcript + settings + export + analytics
-- Atharv: audio capture + STT + AI summarization + task extraction + vector engine
+- Samar: modern UI + audio engine & recorder + transcript + settings + export + analytics
+- Atharv: STT + AI summarization + task extraction + vector engine
 
 This is the best balance for a professional desktop product with parallel execution and strong technical ownership.
 

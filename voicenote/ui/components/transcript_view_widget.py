@@ -2,14 +2,16 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QTextEdit, QFrame, QInputDialog, QMessageBox, QApplication
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 
 class TranscriptViewWidget(QWidget):
     """Transcript Viewer & Tag Manager UI Component - Retro Cream Theme matching assets/transcript.png."""
+    export_clicked = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.tags = ["#Sprint-Architecture", "#Ollama-AI", "#Local-Whisper", "#High-Priority"]
+        self.current_title = "Sprint Planning & Local AI Architecture"
         self.init_ui()
 
     def init_ui(self):
@@ -30,17 +32,22 @@ class TranscriptViewWidget(QWidget):
         self.title_label = QLabel("Note: Sprint Planning & Local AI Architecture")
         self.title_label.setObjectName("titleLabel")
         
-        sub_info = QLabel("Recorded Today at 02:30 PM  •  Duration: 04m 32s  •  Format: WAV 16kHz Mono  •  Engine: faster-whisper")
-        sub_info.setObjectName("subtitleLabel")
+        self.sub_info = QLabel("Recorded Today at 02:30 PM  •  Duration: 04m 32s  •  Format: WAV 16kHz Mono  •  Engine: faster-whisper")
+        self.sub_info.setObjectName("subtitleLabel")
         
         title_v.addWidget(self.title_label)
-        title_v.addWidget(sub_info)
+        title_v.addWidget(self.sub_info)
         top_row.addLayout(title_v)
         top_row.addStretch()
 
         # Action Buttons
+        btn_export = QPushButton("Export Note")
+        btn_export.setObjectName("primaryBtn")
+        btn_export.clicked.connect(lambda: self.export_clicked.emit(self.current_title))
+        top_row.addWidget(btn_export)
+
         btn_copy = QPushButton("Copy Text")
-        btn_copy.setStyleSheet("background-color: #F8F6F0; border: 1px solid #E5E0D6; font-weight: 700; color: #4A3980;")
+        btn_copy.setStyleSheet("background-color: #F8F6F0; border: 1px solid #E5E0D6; font-weight: 700; color: #4A3980; padding: 6px 14px;")
         btn_copy.clicked.connect(self.copy_transcript)
         top_row.addWidget(btn_copy)
 
@@ -122,6 +129,34 @@ class TranscriptViewWidget(QWidget):
         ]
         filtered = [l for l in lines if text.lower() in l.lower()]
         self.transcript_edit.setPlainText("\n\n".join(filtered) if filtered else "No matching dialogue found.")
+
+    def set_note_transcript(self, title: str, transcript_text: str, tags: list = None, metadata_info: str = None):
+        """Dynamically load and format a note's real transcript in the viewer."""
+        self.current_title = title
+        self.title_label.setText(f"Note: {title}")
+        if metadata_info:
+            self.sub_info.setText(metadata_info)
+        if tags is not None:
+            self.tags = [f"#{t.lstrip('#')}" for t in tags] if tags else ["#VoiceNote"]
+            self.render_tags()
+
+        # Format transcript lines with styled timestamps
+        formatted_html_lines = []
+        for line in transcript_text.split("\n"):
+            line_str = line.strip()
+            if not line_str:
+                formatted_html_lines.append("<br>")
+                continue
+            if line_str.startswith("[") and "]" in line_str:
+                idx = line_str.find("]")
+                timestamp = line_str[:idx + 1]
+                rest = line_str[idx + 1:].strip()
+                formatted_html_lines.append(f"<b style='color: #6D59A7;'>{timestamp}</b> {rest}<br><br>")
+            else:
+                formatted_html_lines.append(f"{line_str}<br><br>")
+
+        html = f"<div style='line-height: 1.8; color: #1E2B4B; font-size: 13px;'>{''.join(formatted_html_lines)}</div>"
+        self.transcript_edit.setHtml(html)
 
     def sample_full_html(self) -> str:
         return """<p style='line-height: 1.8; color: #1E2B4B;'>

@@ -11,6 +11,7 @@ class WaveformWidget(QWidget):
         self.setMinimumHeight(70)
         self.is_recording = False
         self.phase = 0.0
+        self.live_amplitude = 0.0
         
         self.lines_count = 120
         self.amplitudes = [random.uniform(0.05, 0.25) for _ in range(self.lines_count)]
@@ -21,15 +22,24 @@ class WaveformWidget(QWidget):
 
     def set_recording(self, recording: bool):
         self.is_recording = recording
+        if not recording:
+            self.live_amplitude = 0.0
         self.update()
+
+    def set_live_amplitude(self, amp: float):
+        self.live_amplitude = max(0.0, min(1.0, amp))
 
     def update_waveform(self):
         self.phase += 0.15
         if self.is_recording:
             self.amplitudes.pop(0)
-            wave_val = (math.sin(self.phase) * 0.3 + math.sin(self.phase * 2.3) * 0.2 + 0.5)
-            noise = random.uniform(0.05, 0.45)
-            new_amp = max(0.05, min(0.95, wave_val * 0.6 + noise * 0.4))
+            if self.live_amplitude > 0.02:
+                noise = random.uniform(0.05, 0.2)
+                new_amp = max(0.08, min(0.98, self.live_amplitude * 1.8 + noise))
+            else:
+                wave_val = (math.sin(self.phase) * 0.3 + math.sin(self.phase * 2.3) * 0.2 + 0.5)
+                noise = random.uniform(0.05, 0.35)
+                new_amp = max(0.05, min(0.95, wave_val * 0.5 + noise * 0.3))
             self.amplitudes.append(new_amp)
         self.update()
 

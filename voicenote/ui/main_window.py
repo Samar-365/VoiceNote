@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QStackedWidget, QScrollArea, QFrame, QGridLayout, QMessageBox, QStatusBar
 )
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QIcon
 
 from voicenote.config import APP_NAME, APP_SUBTITLE, VERSION
@@ -29,9 +29,11 @@ from voicenote.ui.dialogs.profile_dialog import ProfileDialog
 
 class MainWindow(QMainWindow):
     """Main Application Window for VoiceNote Desktop matching assets/home.png."""
+    logout_requested = Signal()
 
-    def __init__(self):
+    def __init__(self, current_user: dict = None):
         super().__init__()
+        self.current_user = current_user or {}
         self.setWindowTitle(f"{APP_NAME} Desktop - AI-Powered Local Voice Intelligence")
         self.resize(1280, 840)
         self.setMinimumSize(1024, 700)
@@ -39,6 +41,7 @@ class MainWindow(QMainWindow):
         
         self.db = get_db()
         self.worker = None
+        self.current_selected_note_title = None
         self.init_ui()
 
     def init_ui(self):
@@ -65,6 +68,8 @@ class MainWindow(QMainWindow):
 
         # 2. Header Bar
         self.header = HeaderWidget()
+        if self.current_user:
+            self.header.set_user(self.current_user)
         self.header.profile_clicked.connect(self.show_profile_dialog)
         self.header.search_triggered.connect(self.on_header_search)
         right_layout.addWidget(self.header)
@@ -78,6 +83,7 @@ class MainWindow(QMainWindow):
 
         # View 1: Transcript & Tag Manager View
         self.transcript_view = TranscriptViewWidget()
+        self.transcript_view.export_clicked.connect(self.on_export_note)
         self.stack.addWidget(self.transcript_view)
 
         # View 2: AI Summary & Task Board View
@@ -240,31 +246,112 @@ class MainWindow(QMainWindow):
             self.semantic_search_view.perform_search()
 
     def on_view_note(self, note_title: str):
+        self.current_selected_note_title = note_title
         self.sidebar.on_nav_click(1)
-        self.transcript_view.title_label.setText(f"Note: {note_title}")
+        note_data = self._fetch_full_note_data(note_title)
+        transcript_text = note_data.get("transcript") or note_data.get("summary") or "No transcript available."
+        tags = note_data.get("tags", [])
+        meta_str = f"Date: {note_data.get('created_at', 'Today')}  •  Duration: {note_data.get('duration', '00:00')}  •  Category: {note_data.get('category', 'General')}"
+        self.transcript_view.set_note_transcript(
+            title=note_title,
+            transcript_text=transcript_text,
+            tags=tags,
+            metadata_info=meta_str
+        )
+        if note_data.get("summary"):
+            self.summary_task_view.set_ai_data(
+                summary=note_data.get("summary"),
+                key_points=note_data.get("key_points", []),
+                tasks=note_data.get("tasks", []),
+                model_name="Gemini 2.5 Flash"
+            )
+
+    def _fetch_full_note_data(self, note_title: str) -> dict:
+        """Fetch all related DB entities (transcript, AI summary, tasks) for a note."""
+        if not self.db:
+            return {"title": note_title}
+
+        try:
+            all_notes = self.db.get_all_notes()
+            target = next((n for n in all_notes if n.get("title") == note_title), None)
+            if not target:
+                return {"title": note_title}
+
+            note_id = target.get("id")
+            transcript_data = self.db.get_transcript(note_id) if note_id else None
+            summary_data = self.db.get_ai_summary(note_id) if note_id else None
+            all_tasks = self.db.get_all_tasks() if note_id else []
+            note_tasks = [t for t in all_tasks if t.get("note_id") == note_id]
+
+            tags = target.get("main_topics") or target.get("tags") or [target.get("category", "General")]
+            if summary_data and summary_data.get("main_topics"):
+                tags = summary_data.get("main_topics")
+
+            return {
+                "id": note_id,
+                "title": target.get("title", note_title),
+                "created_at": target.get("created_at", "Today"),
+                "duration": target.get("duration", "00:00"),
+                "category": target.get("category", "General"),
+                "tags": tags,
+                "summary": summary_data.get("summary", target.get("summary", "")) if summary_data else target.get("summary", ""),
+                "key_points": summary_data.get("key_points", target.get("key_points", [])) if summary_data else target.get("key_points", []),
+                "sentiment": summary_data.get("sentiment", "Neutral") if summary_data else "Neutral",
+                "tasks": note_tasks,
+                "transcript": (
+                    (transcript_data.get("cleaned_text") or transcript_data.get("raw_text"))
+                    if transcript_data else target.get("summary", "")
+                ),
+            }
+        except Exception:
+            return {"title": note_title}
 
     def on_export_note(self, note_title: str):
-        dialog = ExportDialog(note_title=note_title, parent=self)
-        if dialog.exec():
-            QMessageBox.information(self, "Export Success", f"Successfully exported '{note_title}' to file.")
-
-    def show_export_dialog(self):
-        dialog = ExportDialog(parent=self)
-        if dialog.exec():
-            QMessageBox.information(self, "Export Success", "Successfully exported selected note.")
-
-    def show_profile_dialog(self):
-        dialog = ProfileDialog(parent=self)
+        self.current_selected_note_title = note_title
+        note_data = self._fetch_full_note_data(note_title)
+        dialog = ExportDialog(note_data=note_data, note_title=note_title, parent=self)
         dialog.exec()
 
+    def show_export_dialog(self):
+        title = self.current_selected_note_title
+        note_data = self._fetch_full_note_data(title) if title else None
+        dialog = ExportDialog(note_data=note_data, note_title=title, parent=self)
+        dialog.exec()
+
+    def show_profile_dialog(self):
+        dialog = ProfileDialog(user_data=self.current_user, parent=self)
+        dialog.logout_requested.connect(self.on_logout_triggered)
+        dialog.exec()
+
+    def on_logout_triggered(self):
+        self.logout_requested.emit()
+        self.close()
+
+
     def on_new_recording_finished(self, raw_text_or_path: str):
-        self.status_bar.showMessage("Processing Audio & Generating AI Summary...")
+        self.status_bar.showMessage("Recording saved to data/recording • Processing AI Pipeline...")
         
         # Check if background PipelineWorker is available
         if PipelineWorker and callable(PipelineWorker):
             try:
-                title_snip = raw_text_or_path[:20] if raw_text_or_path else "Recording"
-                self.worker = PipelineWorker(raw_transcript=raw_text_or_path, title=f"Voice Note ({title_snip}...)")
+                from pathlib import Path
+                is_file = Path(raw_text_or_path).exists() if raw_text_or_path else False
+                if is_file:
+                    audio_file = raw_text_or_path
+                    raw_text = None
+                    file_stem = Path(raw_text_or_path).stem
+                    title_name = f"Voice Note ({file_stem})"
+                else:
+                    audio_file = None
+                    raw_text = raw_text_or_path
+                    title_snip = raw_text_or_path[:20] if raw_text_or_path else "Recording"
+                    title_name = f"Voice Note ({title_snip}...)"
+
+                self.worker = PipelineWorker(
+                    audio_path=audio_file,
+                    raw_transcript=raw_text,
+                    title=title_name
+                )
                 self.worker.progress.connect(lambda msg: self.status_bar.showMessage(msg))
                 self.worker.finished.connect(self.on_pipeline_success)
                 self.worker.error.connect(self.on_pipeline_error)
@@ -276,17 +363,40 @@ class MainWindow(QMainWindow):
         # Presentation mode fallback
         self.status_bar.showMessage("AI Processing Complete • Note added to dashboard")
         QMessageBox.information(
-            self, "Transcription Complete",
-            "Whisper speech recognition & Gemini AI summary processing completed successfully!\n\nNote added to your dashboard."
+            self, "Recording Saved & Transcribed",
+            f"Audio recording successfully stored in data/recording folder.\n\nFile/Payload: {raw_text_or_path}\n\nNote added to your dashboard."
         )
         self.sidebar.on_nav_click(1)
 
     def on_pipeline_success(self, data: dict):
         self.status_bar.showMessage("AI Processing Complete • Saved to Database")
         self.refresh_notes_list()
+
+        # Populate newly transcribed note into transcript and summary views
+        title = data.get("title", "Voice Note")
+        self.current_selected_note_title = title
+        transcript_text = data.get("transcript", "")
+        duration = data.get("duration", "00:00")
+        ai_data = data.get("ai_data") or {}
+
+        self.transcript_view.set_note_transcript(
+            title=title,
+            transcript_text=transcript_text,
+            tags=ai_data.get("tags", ["#VoiceNote"]),
+            metadata_info=f"Recorded Just Now  •  Duration: {duration}  •  Format: WAV 16kHz  •  Engine: Whisper & Gemini"
+        )
+
+        if ai_data.get("summary"):
+            self.summary_task_view.set_ai_data(
+                summary=ai_data.get("summary", ""),
+                key_points=ai_data.get("key_points", []),
+                tasks=ai_data.get("tasks", []),
+                model_name="Gemini 2.5 Flash"
+            )
+
         QMessageBox.information(
             self, "Pipeline Complete",
-            f"Speech transcription & Gemini AI analysis completed for note:\n\n'{data.get('title', 'Voice Note')}'"
+            f"Speech transcription & Gemini AI analysis completed for note:\n\n'{title}'"
         )
         self.sidebar.on_nav_click(1)
 
