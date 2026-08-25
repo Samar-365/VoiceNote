@@ -29,3 +29,7 @@ dist/
 data/
 *.db
 
+
+test_pipeline_chroma_db/
+
+test_chroma_db/

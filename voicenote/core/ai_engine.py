@@ -27,10 +27,16 @@ class TranscriptAnalysis(BaseModel):
 class AIEngine:
     """Interface between VoiceNote and the Gemini LLM."""
 
-    def __init__(self, model="gemini-2.5-flash"):
+    def __init__(
+        self,
+        api_key=None,
+        model="gemini-3.6-flash",
+        temperature=0.3
+    ):
         self.model = os.getenv("GEMINI_MODEL", model)
+        self.temperature = temperature
 
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = api_key or os.getenv("GEMINI_API_KEY")
 
         if not api_key:
             raise ValueError(
