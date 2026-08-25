@@ -116,6 +116,23 @@ def run_export_engine_tests():
         return False
 
 
+def run_analytics_engine_tests():
+    logger.info("--- Testing Analytics Engine (Metrics & Aggregation) ---")
+    try:
+        from tests.test_analytics_engine import TestAnalyticsEngine
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestAnalyticsEngine)
+        result = unittest.TextTestRunner(verbosity=0).run(suite)
+        if result.wasSuccessful():
+            logger.info("[OK] Analytics Engine tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Analytics Engine tests failed: {result.errors + result.failures}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Analytics Engine test failed: {e}")
+        return False
+
+
 def run_auth_tests():
     logger.info("--- Testing Authentication Layer (Login / Registration) ---")
     try:
@@ -144,6 +161,7 @@ def main():
         ("Text Cleaner Engine", run_text_cleaner_tests()),
         ("Audio Recording Storage", run_audio_recording_tests()),
         ("Export Engine (PDF/DOCX/TXT)", run_export_engine_tests()),
+        ("Analytics Engine", run_analytics_engine_tests()),
         ("AI Engine Validation", run_ai_engine_tests()),
         ("GUI & Service Workers", run_gui_import_tests()),
     ]

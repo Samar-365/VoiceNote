@@ -20,6 +20,6 @@ VoiceNote is a privacy-first, offline desktop application for recording audio, t
 - PostgreSQL for relational data
 - ChromaDB for semantic search
 - faster-whisper for speech-to-text
-- Ollama with Llama/Gemma for AI summarization and task extraction
+- Gemini AI (Google GenAI) for AI summarization and task extraction
 - PyInstaller for packaging
 - Inno Setup for Windows installation

@@ -26,6 +26,8 @@ from voicenote.ui.components.semantic_search_widget import SemanticSearchWidget
 from voicenote.ui.components.analytics_dashboard_widget import AnalyticsDashboardWidget
 from voicenote.ui.dialogs.export_dialog import ExportDialog
 from voicenote.ui.dialogs.profile_dialog import ProfileDialog
+from voicenote.ui.dialogs.settings_dialog import SettingsDialog
+from voicenote.ui.dialogs.processing_dialog import ProcessingDialog
 
 class MainWindow(QMainWindow):
     """Main Application Window for VoiceNote Desktop matching assets/home.png."""
@@ -41,6 +43,7 @@ class MainWindow(QMainWindow):
         
         self.db = get_db()
         self.worker = None
+        self.processing_dialog = None
         self.current_selected_note_title = None
         self.init_ui()
 
@@ -57,7 +60,7 @@ class MainWindow(QMainWindow):
         self.sidebar = SidebarWidget()
         self.sidebar.nav_changed.connect(self.switch_view)
         self.sidebar.export_clicked.connect(self.show_export_dialog)
-        self.sidebar.settings_clicked.connect(self.show_profile_dialog)
+        self.sidebar.settings_clicked.connect(self.show_settings_dialog)
         main_layout.addWidget(self.sidebar)
 
         # Right Main Content Container
@@ -84,6 +87,7 @@ class MainWindow(QMainWindow):
         # View 1: Transcript & Tag Manager View
         self.transcript_view = TranscriptViewWidget()
         self.transcript_view.export_clicked.connect(self.on_export_note)
+        self.transcript_view.delete_clicked.connect(self.on_delete_note)
         self.stack.addWidget(self.transcript_view)
 
         # View 2: AI Summary & Task Board View
@@ -121,13 +125,23 @@ class MainWindow(QMainWindow):
         stats_row = QHBoxLayout()
         stats_row.setSpacing(12)
 
-        total_notes = self.db.get_note_count() if self.db else 24
-        tasks_count = len(self.db.get_all_tasks()) if self.db else 5
+        total_notes = self.db.get_note_count() if self.db else 0
+        tasks_count = len(self.db.get_all_tasks()) if self.db else 0
+        all_notes = self.db.get_all_notes() if self.db else []
+        
+        try:
+            from voicenote.core.analytics_engine import AnalyticsEngine
+            tot_sec = sum(AnalyticsEngine.parse_duration_to_seconds(n.get("duration")) for n in all_notes)
+            formatted_tot = AnalyticsEngine.format_seconds_to_human(tot_sec)
+            avg_str = AnalyticsEngine.format_seconds_to_human(tot_sec / total_notes) if total_notes > 0 else "0m 00s"
+        except Exception:
+            formatted_tot = "0m 00s"
+            avg_str = "0m 00s"
 
         stats_data = [
-            ("Total Voice Notes", f"{total_notes} Notes", "+3 Today", "badgePurple"),
-            ("Recorded Audio", "15m 27s", "Avg 5m/note", "badgeCyan"),
-            ("Pending Tasks", f"{tasks_count} Tasks", "Active", "badgeAmber"),
+            ("Total Voice Notes", f"{total_notes} Notes", f"{total_notes} recorded", "badgePurple"),
+            ("Recorded Audio", formatted_tot, f"Avg {avg_str} / note", "badgeCyan"),
+            ("Pending Tasks", f"{tasks_count} Tasks", "Active" if tasks_count > 0 else "None pending", "badgeAmber"),
             ("Local AI Privacy", "Active", "Whisper & Gemini", "badgeActive"),
         ]
 
@@ -164,12 +178,18 @@ class MainWindow(QMainWindow):
         r_title = QLabel("Recent Voice Notes & Transcripts")
         r_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
         
+        btn_clear_all = QPushButton("Remove All Recordings")
+        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 0px;")
+        btn_clear_all.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_clear_all.clicked.connect(self.on_delete_all_notes)
+
         btn_view_all = QPushButton("View All Notes ->")
         btn_view_all.setStyleSheet("background-color: transparent; border: none; color: #6D59A7; font-weight: 700;")
         btn_view_all.clicked.connect(lambda: self.sidebar.on_nav_click(1))
 
         recent_header.addWidget(r_title)
         recent_header.addStretch()
+        recent_header.addWidget(btn_clear_all)
         recent_header.addWidget(btn_view_all)
 
         self.home_layout.addLayout(recent_header)
@@ -193,30 +213,24 @@ class MainWindow(QMainWindow):
 
         db_notes = self.db.get_all_notes() if self.db else []
         if not db_notes:
-            # Display sample notes if database is empty
-            db_notes = [
-                {
-                    "title": "Sprint Planning & Local AI Architecture",
-                    "created_at": "Today, 02:30 PM",
-                    "duration": "04m 32s",
-                    "summary": "Discussed PySide6 UI responsiveness, QThread background processing for Whisper STT, and ChromaDB vector store integration.",
-                    "main_topics": ["#Sprint-Planning", "#Architecture", "#Ollama-AI"]
-                },
-                {
-                    "title": "PostgreSQL Schema & Persistence Review",
-                    "created_at": "Yesterday, 04:15 PM",
-                    "duration": "12m 40s",
-                    "summary": "Reviewed user profiles, transcript relational tables, tag associations, and SQLAlchemy model migrations.",
-                    "main_topics": ["#PostgreSQL", "#Database"]
-                },
-                {
-                    "title": "Task Extraction & AI Prompt Formatting",
-                    "created_at": "Aug 12, 11:00 AM",
-                    "duration": "08m 15s",
-                    "summary": "Defined JSON structured outputs for Ollama task extraction, priority categorization, and assignee mapping.",
-                    "main_topics": ["#Tasks", "#Ollama-AI", "#High-Priority"]
-                }
-            ]
+            empty_frame = QFrame()
+            empty_frame.setObjectName("cardFrame")
+            e_lay = QVBoxLayout(empty_frame)
+            e_lay.setContentsMargins(24, 32, 24, 32)
+            e_lay.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_title = QLabel("No Voice Notes Recorded Yet")
+            e_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
+            e_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_sub = QLabel("Record audio using the microphone above or import an audio file to generate transcripts and AI summaries.")
+            e_sub.setStyleSheet("font-size: 13px; color: #5C6479; margin-top: 4px;")
+            e_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            e_lay.addWidget(e_title)
+            e_lay.addWidget(e_sub)
+            self.notes_container.addWidget(empty_frame)
+            return
 
         for note in db_notes:
             tags = note.get("main_topics", ["#VoiceNote"])
@@ -232,12 +246,15 @@ class MainWindow(QMainWindow):
             )
             card.view_clicked.connect(self.on_view_note)
             card.export_clicked.connect(self.on_export_note)
+            card.delete_clicked.connect(self.on_delete_note)
             self.notes_container.addWidget(card)
 
     def switch_view(self, index: int):
         self.stack.setCurrentIndex(index)
         views = ["Home & Recorder", "Transcripts & Notes", "AI Summary & Tasks", "Semantic Search", "Analytics Dashboard"]
         self.status_bar.showMessage(f"Active View: {views[index]}")
+        if index == 4 and hasattr(self, "analytics_view"):
+            self.analytics_view.refresh_data()
 
     def on_header_search(self, query: str):
         if query.strip():
@@ -312,6 +329,63 @@ class MainWindow(QMainWindow):
         dialog = ExportDialog(note_data=note_data, note_title=note_title, parent=self)
         dialog.exec()
 
+    def on_delete_note(self, note_title: str):
+        """Prompt confirmation and delete the selected note and its recording."""
+        reply = QMessageBox.question(
+            self,
+            "Remove Recording & Note",
+            f"Are you sure you want to remove voice note:\n\n'{note_title}'?\n\nThis will permanently delete the audio recording file, transcript, summary, and tasks.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.db:
+                success = self.db.delete_note_by_title(note_title)
+                if success:
+                    self.status_bar.showMessage(f"Voice Note '{note_title}' removed successfully.")
+                else:
+                    self.status_bar.showMessage(f"Could not remove '{note_title}'.")
+            
+            # Reset views if active note was deleted
+            if self.current_selected_note_title == note_title:
+                self.current_selected_note_title = None
+                self.transcript_view.set_note_transcript("No Note Selected", "Select a note from the dashboard or record audio.", [])
+                self.summary_task_view.set_ai_data("No AI summary available.", [], [], "None")
+
+            self.refresh_notes_list()
+            if hasattr(self, "analytics_view"):
+                self.analytics_view.refresh_data()
+
+    def on_delete_all_notes(self):
+        """Prompt confirmation and purge all recordings, notes, transcripts, summaries, and tasks."""
+        count = self.db.get_note_count() if self.db else 0
+        if count == 0:
+            QMessageBox.information(self, "No Recordings", "There are no recordings or voice notes stored in the database.")
+            return
+
+        reply = QMessageBox.warning(
+            self,
+            "Remove All Recordings & Notes",
+            f"Are you sure you want to permanently remove ALL {count} voice notes and recordings?\n\nThis will purge all audio files from data/recording, transcripts, summaries, and extracted tasks from the database.\n\nThis action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.db:
+                deleted_count = self.db.delete_all_notes()
+                self.status_bar.showMessage(f"All {deleted_count} voice notes and recordings removed.")
+            
+            # Reset active views
+            self.current_selected_note_title = None
+            self.transcript_view.set_note_transcript("No Note Selected", "Select a note from the dashboard or record audio.", [])
+            self.summary_task_view.set_ai_data("No AI summary available.", [], [], "None")
+
+            self.refresh_notes_list()
+            if hasattr(self, "analytics_view"):
+                self.analytics_view.refresh_data()
+            
+            QMessageBox.information(self, "Recordings Cleared", "All voice notes and audio recordings have been successfully removed.")
+
     def show_export_dialog(self):
         title = self.current_selected_note_title
         note_data = self._fetch_full_note_data(title) if title else None
@@ -323,6 +397,10 @@ class MainWindow(QMainWindow):
         dialog.logout_requested.connect(self.on_logout_triggered)
         dialog.exec()
 
+    def show_settings_dialog(self):
+        dialog = SettingsDialog(parent=self)
+        dialog.exec()
+
     def on_logout_triggered(self):
         self.logout_requested.emit()
         self.close()
@@ -331,6 +409,10 @@ class MainWindow(QMainWindow):
     def on_new_recording_finished(self, raw_text_or_path: str):
         self.status_bar.showMessage("Recording saved to data/recording • Processing AI Pipeline...")
         
+        # Open and show animated processing loader dialog
+        self.processing_dialog = ProcessingDialog(self, title="Processing Voice Note")
+        self.processing_dialog.show()
+
         # Check if background PipelineWorker is available
         if PipelineWorker and callable(PipelineWorker):
             try:
@@ -352,13 +434,20 @@ class MainWindow(QMainWindow):
                     raw_transcript=raw_text,
                     title=title_name
                 )
-                self.worker.progress.connect(lambda msg: self.status_bar.showMessage(msg))
+                self.worker.progress.connect(self._on_pipeline_progress)
                 self.worker.finished.connect(self.on_pipeline_success)
                 self.worker.error.connect(self.on_pipeline_error)
                 self.worker.start()
                 return
             except Exception as e:
                 self.status_bar.showMessage("Pipeline notice: running in local presentation mode.")
+                if self.processing_dialog:
+                    self.processing_dialog.close()
+                    self.processing_dialog = None
+
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
 
         # Presentation mode fallback
         self.status_bar.showMessage("AI Processing Complete • Note added to dashboard")
@@ -368,9 +457,20 @@ class MainWindow(QMainWindow):
         )
         self.sidebar.on_nav_click(1)
 
+    def _on_pipeline_progress(self, msg: str):
+        self.status_bar.showMessage(msg)
+        if self.processing_dialog:
+            self.processing_dialog.set_status(msg)
+
     def on_pipeline_success(self, data: dict):
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
+
         self.status_bar.showMessage("AI Processing Complete • Saved to Database")
         self.refresh_notes_list()
+        if hasattr(self, "analytics_view"):
+            self.analytics_view.refresh_data()
 
         # Populate newly transcribed note into transcript and summary views
         title = data.get("title", "Voice Note")
@@ -401,5 +501,9 @@ class MainWindow(QMainWindow):
         self.sidebar.on_nav_click(1)
 
     def on_pipeline_error(self, err_msg: str):
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
+
         self.status_bar.showMessage("Error processing voice note.")
         QMessageBox.critical(self, "Processing Error", f"Failed to process recording:\n\n{err_msg}")

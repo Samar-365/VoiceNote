@@ -9,13 +9,7 @@ class SummaryTaskWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.tasks = [
-            {"desc": "Implement QThread worker for faster-whisper background STT processing", "priority": "HIGH", "assignee": "Lead Eng", "done": True},
-            {"desc": "Configure local Ollama structured JSON prompt schema for task extraction", "priority": "HIGH", "assignee": "AI Arch", "done": False},
-            {"desc": "Setup ChromaDB collection for transcript vector embeddings and semantic search", "priority": "MEDIUM", "assignee": "Data Eng", "done": False},
-            {"desc": "Build PDF  DOCX export generator using ReportLab / python-docx", "priority": "MEDIUM", "assignee": "Dev Team", "done": False},
-            {"desc": "Integrate PostgreSQL database schema with SQLAlchemy models", "priority": "LOW", "assignee": "Backend Eng", "done": True},
-        ]
+        self.tasks = []
         self.init_ui()
 
     def init_ui(self):
@@ -162,12 +156,7 @@ class SummaryTaskWidget(QWidget):
 
     def load_sample_summary(self):
         self.summary_text_lbl.setText(
-            "<b>Overview:</b> The team aligned on building a privacy-first, local-only desktop application using PySide6. "
-            "All speech recognition (Whisper) and LLM inference (Ollama) will run locally on client machines.<br><br>"
-            "<b>Key Decisions:</b><br>"
-            "• Use <b>PySide6 QThreads</b> to prevent UI freeze during audio transcription.<br>"
-            "• Utilize <b>ChromaDB</b> for indexing note chunk embeddings for instant semantic search.<br>"
-            "• Provide seamless <b>PDF, DOCX, and TXT</b> export options directly from the home dashboard."
+            "<span style='color: #7D8495; font-style: italic;'>No active voice note selected. Select a note from the Recent Notes feed or record audio to view its AI summary and key takeaways.</span>"
         )
 
     def set_ai_data(self, summary: str, key_points: list = None, tasks: list = None, model_name: str = "Gemini 2.5 Flash"):
