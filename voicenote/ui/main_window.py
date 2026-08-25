@@ -27,6 +27,7 @@ from voicenote.ui.components.analytics_dashboard_widget import AnalyticsDashboar
 from voicenote.ui.dialogs.export_dialog import ExportDialog
 from voicenote.ui.dialogs.profile_dialog import ProfileDialog
 from voicenote.ui.dialogs.settings_dialog import SettingsDialog
+from voicenote.ui.dialogs.processing_dialog import ProcessingDialog
 
 class MainWindow(QMainWindow):
     """Main Application Window for VoiceNote Desktop matching assets/home.png."""
@@ -42,6 +43,7 @@ class MainWindow(QMainWindow):
         
         self.db = get_db()
         self.worker = None
+        self.processing_dialog = None
         self.current_selected_note_title = None
         self.init_ui()
 
@@ -407,6 +409,10 @@ class MainWindow(QMainWindow):
     def on_new_recording_finished(self, raw_text_or_path: str):
         self.status_bar.showMessage("Recording saved to data/recording • Processing AI Pipeline...")
         
+        # Open and show animated processing loader dialog
+        self.processing_dialog = ProcessingDialog(self, title="Processing Voice Note")
+        self.processing_dialog.show()
+
         # Check if background PipelineWorker is available
         if PipelineWorker and callable(PipelineWorker):
             try:
@@ -428,13 +434,20 @@ class MainWindow(QMainWindow):
                     raw_transcript=raw_text,
                     title=title_name
                 )
-                self.worker.progress.connect(lambda msg: self.status_bar.showMessage(msg))
+                self.worker.progress.connect(self._on_pipeline_progress)
                 self.worker.finished.connect(self.on_pipeline_success)
                 self.worker.error.connect(self.on_pipeline_error)
                 self.worker.start()
                 return
             except Exception as e:
                 self.status_bar.showMessage("Pipeline notice: running in local presentation mode.")
+                if self.processing_dialog:
+                    self.processing_dialog.close()
+                    self.processing_dialog = None
+
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
 
         # Presentation mode fallback
         self.status_bar.showMessage("AI Processing Complete • Note added to dashboard")
@@ -444,7 +457,16 @@ class MainWindow(QMainWindow):
         )
         self.sidebar.on_nav_click(1)
 
+    def _on_pipeline_progress(self, msg: str):
+        self.status_bar.showMessage(msg)
+        if self.processing_dialog:
+            self.processing_dialog.set_status(msg)
+
     def on_pipeline_success(self, data: dict):
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
+
         self.status_bar.showMessage("AI Processing Complete • Saved to Database")
         self.refresh_notes_list()
         if hasattr(self, "analytics_view"):
@@ -479,5 +501,9 @@ class MainWindow(QMainWindow):
         self.sidebar.on_nav_click(1)
 
     def on_pipeline_error(self, err_msg: str):
+        if self.processing_dialog:
+            self.processing_dialog.close()
+            self.processing_dialog = None
+
         self.status_bar.showMessage("Error processing voice note.")
         QMessageBox.critical(self, "Processing Error", f"Failed to process recording:\n\n{err_msg}")

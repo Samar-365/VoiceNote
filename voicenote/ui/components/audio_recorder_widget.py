@@ -236,23 +236,16 @@ class AudioRecorderWidget(QWidget):
         
         # 3. Reset status and timer display
         self.timer_label.setText("00:00:00")
-        self.status_badge.setText("PROCESSING")
-        self.status_badge.setObjectName("badgePurple")
-        self.status_badge.style().unpolish(self.status_badge)
-        self.status_badge.style().polish(self.status_badge)
-        
-        # 4. Trigger processing progress
-        self.progress_box.show()
-        QTimer.singleShot(2200, self.finish_processing)
-
-    def finish_processing(self):
-        logger.info(f"Speech transcription and summarization ready for: '{self.active_audio_payload}'.")
-        self.progress_box.hide()
         self.status_badge.setText("IDLE")
         self.status_badge.setObjectName("badgeActive")
         self.status_badge.style().unpolish(self.status_badge)
         self.status_badge.style().polish(self.status_badge)
         self.btn_record.setEnabled(True)
+        
+        # 4. Trigger transcription & AI pipeline
+        self.transcription_requested.emit(self.active_audio_payload)
+
+    def finish_processing(self):
         self.transcription_requested.emit(self.active_audio_payload)
 
     def update_timer(self):
