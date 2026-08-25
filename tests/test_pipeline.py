@@ -6,7 +6,7 @@ from voicenote.core.vector_engine import VectorEngine
 
 
 def main():
-    audio_path = "test_audio/marathi_test.m4a"
+    audio_path = "test_audio/test_sample_01.m4a"
 
     print("=" * 60)
     print("        VOICENOTE FULL AI PIPELINE")
@@ -119,7 +119,7 @@ def main():
 
     print("\n[5/5] Testing semantic search...")
 
-    search_query = "शाळेच्या इमारतीबद्दल काय सांगितले आहे?"
+    search_query = "whats his role"
 
     results = vector.search(
         search_query,
