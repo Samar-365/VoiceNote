@@ -351,6 +351,78 @@ class DatabaseManager:
                 """)
                 return [dict(r) for r in cursor.fetchall()]
 
+    def delete_note(self, note_id: int) -> bool:
+        """Delete a note and its cascading relations (transcripts, summaries, tasks) from database."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT audio_path FROM notes WHERE id = %s;", (note_id,))
+                    row = cursor.fetchone()
+                    if row and row.get("audio_path"):
+                        try:
+                            import os
+                            if os.path.exists(row["audio_path"]):
+                                os.remove(row["audio_path"])
+                        except Exception as e:
+                            logger.warning(f"Could not remove audio file: {e}")
+                    cursor.execute("DELETE FROM notes WHERE id = %s;", (note_id,))
+                conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete note {note_id}: {e}")
+            return False
+
+    def delete_note_by_title(self, title: str) -> bool:
+        """Delete a note by its title and remove its audio file if present."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT id, audio_path FROM notes WHERE title = %s;", (title,))
+                    row = cursor.fetchone()
+                    if not row:
+                        return False
+                    note_id = row["id"]
+                    if row.get("audio_path"):
+                        try:
+                            import os
+                            if os.path.exists(row["audio_path"]):
+                                os.remove(row["audio_path"])
+                        except Exception as e:
+                            logger.warning(f"Could not remove audio file: {e}")
+                    cursor.execute("DELETE FROM notes WHERE id = %s;", (note_id,))
+                conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete note with title '{title}': {e}")
+            return False
+
+    def delete_all_notes(self) -> int:
+        """Delete all notes, cascade relational tables, and purge recording files from disk."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    # Get all audio paths to clean up recording files
+                    cursor.execute("SELECT audio_path FROM notes WHERE audio_path IS NOT NULL;")
+                    rows = cursor.fetchall()
+                    for r in rows:
+                        path = r.get("audio_path")
+                        if path:
+                            try:
+                                import os
+                                if os.path.exists(path):
+                                    os.remove(path)
+                            except Exception as e:
+                                logger.warning(f"Could not remove file '{path}': {e}")
+                    
+                    cursor.execute("SELECT COUNT(*) FROM notes;")
+                    count = cursor.fetchone()["count"]
+                    cursor.execute("DELETE FROM notes;")
+                conn.commit()
+            return count
+        except Exception as e:
+            logger.error(f"Failed to delete all notes: {e}")
+            return 0
+
     def search_notes(self, query: str) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
             with conn.cursor() as cursor:

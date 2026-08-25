@@ -128,6 +128,43 @@ class TestPostgreSQLDatabaseManager(unittest.TestCase):
         invalid = self.db.verify_user_login(u_name, "wrongpassword")
         self.assertIsNone(invalid)
 
+    def test_delete_note(self):
+        if self.db is None:
+            self.skipTest("PostgreSQL server not running locally or auth failed.")
+        note = Note(title="Temporary Delete Test Note", duration="00:30")
+        note_id = self.db.add_note(note)
+        self.assertIsNotNone(note_id)
+
+        # Save relations
+        self.db.save_transcript(Transcript(note_id=note_id, raw_text="Temp text"))
+        self.db.save_ai_summary(AISummary(note_id=note_id, summary="Temp summary"))
+        self.db.save_task(Task(note_id=note_id, title="Temp task"))
+
+        # Verify exists
+        self.assertIsNotNone(self.db.get_note_by_id(note_id))
+
+        # Delete note
+        success = self.db.delete_note(note_id)
+        self.assertTrue(success)
+
+        # Verify deleted
+        self.assertIsNone(self.db.get_note_by_id(note_id))
+        self.assertIsNone(self.db.get_transcript(note_id))
+        self.assertIsNone(self.db.get_ai_summary(note_id))
+
+    def test_delete_all_notes(self):
+        if self.db is None:
+            self.skipTest("PostgreSQL server not running locally or auth failed.")
+        # Add 2 temporary notes
+        n1 = self.db.add_note(Note(title="Bulk Delete Note 1", duration="00:10"))
+        n2 = self.db.add_note(Note(title="Bulk Delete Note 2", duration="00:20"))
+        self.assertIsNotNone(n1)
+        self.assertIsNotNone(n2)
+        
+        # Test delete all
+        deleted_count = self.db.delete_all_notes()
+        self.assertGreaterEqual(deleted_count, 2)
+        self.assertEqual(self.db.get_note_count(), 0)
 
 
 if __name__ == "__main__":

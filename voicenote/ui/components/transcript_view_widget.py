@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt, Signal
 class TranscriptViewWidget(QWidget):
     """Transcript Viewer & Tag Manager UI Component - Retro Cream Theme matching assets/transcript.png."""
     export_clicked = Signal(str)
+    delete_clicked = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,6 +42,12 @@ class TranscriptViewWidget(QWidget):
         top_row.addStretch()
 
         # Action Buttons
+        btn_delete = QPushButton("Delete Note")
+        btn_delete.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; font-weight: 700; color: #C0392B; padding: 6px 14px;")
+        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_delete.clicked.connect(lambda: self.delete_clicked.emit(self.current_title))
+        top_row.addWidget(btn_delete)
+
         btn_export = QPushButton("Export Note")
         btn_export.setObjectName("primaryBtn")
         btn_export.clicked.connect(lambda: self.export_clicked.emit(self.current_title))

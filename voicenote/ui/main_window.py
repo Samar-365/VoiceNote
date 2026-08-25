@@ -85,6 +85,7 @@ class MainWindow(QMainWindow):
         # View 1: Transcript & Tag Manager View
         self.transcript_view = TranscriptViewWidget()
         self.transcript_view.export_clicked.connect(self.on_export_note)
+        self.transcript_view.delete_clicked.connect(self.on_delete_note)
         self.stack.addWidget(self.transcript_view)
 
         # View 2: AI Summary & Task Board View
@@ -165,12 +166,18 @@ class MainWindow(QMainWindow):
         r_title = QLabel("Recent Voice Notes & Transcripts")
         r_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
         
+        btn_clear_all = QPushButton("Remove All Recordings")
+        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 6px;")
+        btn_clear_all.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_clear_all.clicked.connect(self.on_delete_all_notes)
+
         btn_view_all = QPushButton("View All Notes ->")
         btn_view_all.setStyleSheet("background-color: transparent; border: none; color: #6D59A7; font-weight: 700;")
         btn_view_all.clicked.connect(lambda: self.sidebar.on_nav_click(1))
 
         recent_header.addWidget(r_title)
         recent_header.addStretch()
+        recent_header.addWidget(btn_clear_all)
         recent_header.addWidget(btn_view_all)
 
         self.home_layout.addLayout(recent_header)
@@ -233,6 +240,7 @@ class MainWindow(QMainWindow):
             )
             card.view_clicked.connect(self.on_view_note)
             card.export_clicked.connect(self.on_export_note)
+            card.delete_clicked.connect(self.on_delete_note)
             self.notes_container.addWidget(card)
 
     def switch_view(self, index: int):
@@ -314,6 +322,63 @@ class MainWindow(QMainWindow):
         note_data = self._fetch_full_note_data(note_title)
         dialog = ExportDialog(note_data=note_data, note_title=note_title, parent=self)
         dialog.exec()
+
+    def on_delete_note(self, note_title: str):
+        """Prompt confirmation and delete the selected note and its recording."""
+        reply = QMessageBox.question(
+            self,
+            "Remove Recording & Note",
+            f"Are you sure you want to remove voice note:\n\n'{note_title}'?\n\nThis will permanently delete the audio recording file, transcript, summary, and tasks.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.db:
+                success = self.db.delete_note_by_title(note_title)
+                if success:
+                    self.status_bar.showMessage(f"Voice Note '{note_title}' removed successfully.")
+                else:
+                    self.status_bar.showMessage(f"Could not remove '{note_title}'.")
+            
+            # Reset views if active note was deleted
+            if self.current_selected_note_title == note_title:
+                self.current_selected_note_title = None
+                self.transcript_view.set_note_transcript("No Note Selected", "Select a note from the dashboard or record audio.", [])
+                self.summary_task_view.set_ai_data("No AI summary available.", [], [], "None")
+
+            self.refresh_notes_list()
+            if hasattr(self, "analytics_view"):
+                self.analytics_view.refresh_data()
+
+    def on_delete_all_notes(self):
+        """Prompt confirmation and purge all recordings, notes, transcripts, summaries, and tasks."""
+        count = self.db.get_note_count() if self.db else 0
+        if count == 0:
+            QMessageBox.information(self, "No Recordings", "There are no recordings or voice notes stored in the database.")
+            return
+
+        reply = QMessageBox.warning(
+            self,
+            "Remove All Recordings & Notes",
+            f"Are you sure you want to permanently remove ALL {count} voice notes and recordings?\n\nThis will purge all audio files from data/recording, transcripts, summaries, and extracted tasks from the database.\n\nThis action cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            if self.db:
+                deleted_count = self.db.delete_all_notes()
+                self.status_bar.showMessage(f"All {deleted_count} voice notes and recordings removed.")
+            
+            # Reset active views
+            self.current_selected_note_title = None
+            self.transcript_view.set_note_transcript("No Note Selected", "Select a note from the dashboard or record audio.", [])
+            self.summary_task_view.set_ai_data("No AI summary available.", [], [], "None")
+
+            self.refresh_notes_list()
+            if hasattr(self, "analytics_view"):
+                self.analytics_view.refresh_data()
+            
+            QMessageBox.information(self, "Recordings Cleared", "All voice notes and audio recordings have been successfully removed.")
 
     def show_export_dialog(self):
         title = self.current_selected_note_title
