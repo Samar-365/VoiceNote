@@ -26,6 +26,7 @@ from voicenote.ui.components.semantic_search_widget import SemanticSearchWidget
 from voicenote.ui.components.analytics_dashboard_widget import AnalyticsDashboardWidget
 from voicenote.ui.dialogs.export_dialog import ExportDialog
 from voicenote.ui.dialogs.profile_dialog import ProfileDialog
+from voicenote.ui.dialogs.settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
     """Main Application Window for VoiceNote Desktop matching assets/home.png."""
@@ -57,7 +58,7 @@ class MainWindow(QMainWindow):
         self.sidebar = SidebarWidget()
         self.sidebar.nav_changed.connect(self.switch_view)
         self.sidebar.export_clicked.connect(self.show_export_dialog)
-        self.sidebar.settings_clicked.connect(self.show_profile_dialog)
+        self.sidebar.settings_clicked.connect(self.show_settings_dialog)
         main_layout.addWidget(self.sidebar)
 
         # Right Main Content Container
@@ -238,6 +239,8 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(index)
         views = ["Home & Recorder", "Transcripts & Notes", "AI Summary & Tasks", "Semantic Search", "Analytics Dashboard"]
         self.status_bar.showMessage(f"Active View: {views[index]}")
+        if index == 4 and hasattr(self, "analytics_view"):
+            self.analytics_view.refresh_data()
 
     def on_header_search(self, query: str):
         if query.strip():
@@ -323,6 +326,10 @@ class MainWindow(QMainWindow):
         dialog.logout_requested.connect(self.on_logout_triggered)
         dialog.exec()
 
+    def show_settings_dialog(self):
+        dialog = SettingsDialog(parent=self)
+        dialog.exec()
+
     def on_logout_triggered(self):
         self.logout_requested.emit()
         self.close()
@@ -371,6 +378,8 @@ class MainWindow(QMainWindow):
     def on_pipeline_success(self, data: dict):
         self.status_bar.showMessage("AI Processing Complete • Saved to Database")
         self.refresh_notes_list()
+        if hasattr(self, "analytics_view"):
+            self.analytics_view.refresh_data()
 
         # Populate newly transcribed note into transcript and summary views
         title = data.get("title", "Voice Note")
