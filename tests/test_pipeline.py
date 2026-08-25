@@ -2,15 +2,30 @@ from voicenote.core.vector_engine import VectorEngine
 from voicenote.core.groq_stt_engine import GroqSTTEngine
 from voicenote.core.text_cleaner import TextCleaner
 from voicenote.core.ai_engine import AIEngine
-from voicenote.core.vector_engine import VectorEngine
+from voicenote.core.audio_engine import AudioEngine
 
 
 def main():
-    audio_path = "test_audio/test_sample_01.m4a"
+    import sys
+    sys.stdout.reconfigure(encoding='utf-8')
 
     print("=" * 60)
-    print("        VOICENOTE FULL AI PIPELINE")
+    print("        VOICENOTE FULL AI PIPELINE (LIVE MIC)")
     print("=" * 60)
+
+    print("\n[0/5] Recording live audio from microphone...")
+    import time
+    
+    audio = AudioEngine()
+    if audio.start_recording():
+        print("Recording started. Please speak for 10 seconds...")
+        time.sleep(10)
+        audio_path = audio.stop_recording()
+        print(f"Recording saved to: {audio_path}")
+    else:
+        print("Failed to start recording. Please check your microphone.")
+        return
+
 
     # --------------------------------------------------
     # STEP 1: Groq STT
@@ -23,8 +38,7 @@ def main():
     print("Transcribing audio...")
 
     stt_result = stt.transcribe(
-        audio_path,
-        language="mr"
+        audio_path
     )
 
     print("\n--- RAW TRANSCRIPT ---")
