@@ -10,8 +10,8 @@ VoiceNote is a Windows desktop application that converts spoken recordings into 
 - Language: Python
 - Database: PostgreSQL
 - Vector database: ChromaDB
-- Speech-to-text: faster-whisper
-- LLM: Ollama with Llama/Gemma
+- Speech-to-text: faster-whisper / Groq STT
+- LLM: Gemini AI (Google GenAI)
 - Audio processing: sounddevice / PyAudioWPatch
 - Packaging: PyInstaller
 - Installer: Inno Setup
@@ -62,7 +62,7 @@ Objectives:
 Key outputs:
 
 - faster-whisper transcription
-- Ollama-driven summary generation
+- Gemini AI-driven summary generation
 - task extraction pipeline
 - semantic search and evidence retrieval
 
@@ -124,7 +124,7 @@ The implementation must be validated against the following checks:
 3. Build the main desktop shell and UI navigation.
 4. Connect the audio recording and file import pipeline.
 5. Integrate the transcription engine and transcript storage.
-6. Add Ollama summarization and task extraction logic.
+6. Add Gemini AI summarization and task extraction logic.
 7. Implement semantic retrieval over transcript embeddings.
 8. Add document export and analytics reporting.
 9. Run end-to-end validation tests.

@@ -80,8 +80,8 @@ The system architecture includes:
 - Python as the application language
 - PostgreSQL for relational data management
 - ChromaDB for vector search and embedding storage
-- Ollama for local AI inference (Llama/Gemma)
-- faster-whisper for transcription
+- Gemini AI API for cloud AI inference and summarization
+- faster-whisper and Groq for transcription
 - PyInstaller and Inno Setup for distribution packaging
 
 ## 6. Technology Stack
@@ -91,8 +91,8 @@ The system architecture includes:
 - PostgreSQL
 - SQLAlchemy and psycopg
 - ChromaDB
-- faster-whisper
-- Ollama
+- faster-whisper / Groq STT
+- Gemini AI API
 - PyInstaller
 - Inno Setup
 - Git/GitHub
@@ -100,7 +100,7 @@ The system architecture includes:
 ## 7. Assumptions and Constraints
 
 - The application targets Windows desktop deployment.
-- The user environment may include local dependencies such as PostgreSQL and Ollama.
+- The user environment may include local dependencies such as PostgreSQL.
 - Some features depend on machine capabilities such as CPU or GPU acceleration.
 - The system is optimized for local, privacy-preserving operation rather than cloud-based services.
 

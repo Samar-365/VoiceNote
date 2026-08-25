@@ -90,7 +90,7 @@ class AnalyticsDashboardWidget(QWidget):
                 ],
                 "top_tags": [
                     ("#Sprint-Planning", 18), ("#Architecture", 14),
-                    ("#Meeting-Notes", 10), ("#Ollama-AI", 6)
+                    ("#Meeting-Notes", 10), ("#Gemini-AI", 6)
                 ],
                 "sentiment_distribution": {"Positive": 28, "Neutral": 16, "Negative": 4},
                 "priority_distribution": {"High": 12, "Medium": 25, "Low": 8}

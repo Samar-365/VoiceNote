@@ -188,7 +188,7 @@ class SettingsDialog(QDialog):
         self.combo_llm = QComboBox()
         self.combo_llm.addItem("Gemini 2.5 Flash (Google Cloud AI - Recommended)", "gemini-2.5-flash")
         self.combo_llm.addItem("Gemini 1.5 Pro (In-depth Reasoning)", "gemini-1.5-pro")
-        self.combo_llm.addItem("Ollama (Local Offline Llama 3 / Mistral)", "ollama")
+        self.combo_llm.addItem("Gemini 2.0 Flash (High Speed Inference)", "gemini-2.0-flash")
         lay.addWidget(self.combo_llm)
 
         # API Status Cards

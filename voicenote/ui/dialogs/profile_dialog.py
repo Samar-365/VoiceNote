@@ -80,15 +80,14 @@ class ProfileDialog(QDialog):
         a_layout = QVBoxLayout(tab_ai)
         a_layout.setSpacing(12)
 
-        a_layout.addWidget(QLabel("<b>Local Ollama AI LLM Model:</b>"))
-        self.ollama_combo = QComboBox()
-        self.ollama_combo.addItems([
-            "llama3:8b-instruct (Recommended)",
-            "gemma2:9b-instruct",
-            "mistral:7b-instruct",
-            "phi3:mini"
+        a_layout.addWidget(QLabel("<b>Gemini Cloud AI LLM Model:</b>"))
+        self.ai_model_combo = QComboBox()
+        self.ai_model_combo.addItems([
+            "gemini-2.5-flash (Recommended)",
+            "gemini-1.5-pro (In-depth analysis)",
+            "gemini-2.0-flash (Fastest inference)"
         ])
-        a_layout.addWidget(self.ollama_combo)
+        a_layout.addWidget(self.ai_model_combo)
 
         a_layout.addWidget(QLabel("<b>Whisper STT Model Size:</b>"))
         self.whisper_combo = QComboBox()

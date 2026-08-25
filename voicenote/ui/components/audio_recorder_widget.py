@@ -145,7 +145,7 @@ class AudioRecorderWidget(QWidget):
         self.progress_box = QWidget()
         p_layout = QVBoxLayout(self.progress_box)
         p_layout.setContentsMargins(0, 8, 0, 0)
-        self.progress_label = QLabel("Running faster-whisper transcription & Ollama summary...")
+        self.progress_label = QLabel("Running speech transcription & Gemini AI summary...")
         self.progress_label.setStyleSheet("color: #6D59A7; font-weight: 600;")
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(65)

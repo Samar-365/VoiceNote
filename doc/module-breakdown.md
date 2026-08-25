@@ -134,7 +134,7 @@ Responsible for:
 #### ai_engine.py
 Responsible for:
 
-- Ollama interaction
+- Gemini AI interaction
 - structured prompt orchestration
 - summary and task output parsing
 
