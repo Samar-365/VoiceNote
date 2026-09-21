@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 
@@ -30,6 +30,12 @@ class AISummary:
     key_points: List[str] = field(default_factory=list)
     sentiment: str = "Neutral"
     main_topics: List[str] = field(default_factory=list)
+    decisions: List[str] = field(default_factory=list)
+    deadlines: List[Dict[str, str]] = field(default_factory=list)
+    important_numbers: List[Dict[str, str]] = field(default_factory=list)
+    risks_blockers: List[str] = field(default_factory=list)
+    open_questions: List[str] = field(default_factory=list)
+    follow_ups: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -38,10 +44,11 @@ class Task:
     note_id: Optional[int] = None
     title: str = ""
     description: str = ""
-    priority: str = "Medium"  # High, Medium, Low
+    priority: str = "Medium"  # Urgent, High, Medium, Low
     assignee: str = "Unassigned"
     due_date: str = "TBD"
-    status: str = "Pending"  # Pending, In Progress, Completed
+    status: str = "Not Started"  # Not Started, In Progress, Blocked, Completed
+    notes: str = ""
 
 
 @dataclass
@@ -53,4 +60,3 @@ class User:
     full_name: str = "VoiceNote User"
     created_at: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     avatar_url: Optional[str] = None
-
