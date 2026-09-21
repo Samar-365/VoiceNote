@@ -8,6 +8,10 @@ class TextCleaner:
 
         text = text.strip()
 
+        # Remove timestamp markers like [00:00] or (00:00)
+        text = re.sub(r"\[\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\]", "", text)
+        text = re.sub(r"\(\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\)", "", text)
+
         # Normalize repeated whitespace
         text = re.sub(r"\s+", " ", text)
 
