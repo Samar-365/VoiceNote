@@ -16,7 +16,7 @@ class GroqSTTEngine:
         self.client = Groq(api_key=GROQ_API_KEY)
         self.model = model
 
-    def transcribe(self, audio_path, language=None):
+    def transcribe(self, audio_path, language=None, prompt=None):
         audio_path = Path(audio_path)
 
         if not audio_path.exists():
@@ -29,11 +29,17 @@ class GroqSTTEngine:
                 f"Audio path is not a file: {audio_path}"
             )
 
+        meeting_prompt = prompt or (
+            "Meeting discussion with multiple speakers. Complete sentences, numbers, "
+            "currency like ₹ and lakhs, and short acknowledgments like Got it, Done, Okay."
+        )
+
         with open(audio_path, "rb") as audio_file:
             transcription = self.client.audio.transcriptions.create(
                 file=audio_file,
                 model=self.model,
                 language=language,
+                prompt=meeting_prompt,
                 response_format="verbose_json",
                 timestamp_granularities=["segment"],
                 temperature=0.0
