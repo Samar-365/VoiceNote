@@ -1,4 +1,10 @@
-"""QSS Stylesheet with sharp edges and 100% uniform warm cream background canvas (matching assets/ screenshots)."""
+from pathlib import Path
+
+ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+CHECKBOX_CHECKED = (ASSETS_DIR / "checkbox_checked.png").as_posix()
+CHECKBOX_CHECKED_HOVER = (ASSETS_DIR / "checkbox_checked_hover.png").as_posix()
+RADIO_CHECKED = (ASSETS_DIR / "radio_checked.png").as_posix()
+RADIO_UNCHECKED = (ASSETS_DIR / "radio_unchecked.png").as_posix()
 
 MAIN_STYLE = """
 /* Global Window & Background Canvas - Uniform Soft Warm Cream #ECE7DF */
@@ -135,6 +141,24 @@ QPushButton#stopBtn {
 QPushButton#stopBtn:hover {
     background-color: #475569;
 }
+
+/* Restart Button (Warm Crimson Accent #DC2626 on Pale Rose) */
+QPushButton#restartBtn {
+    background-color: #FFF5F5;
+    border: 1px solid #FCA5A5;
+    color: #DC2626;
+    border-radius: 0px;
+    font-weight: 700;
+}
+QPushButton#restartBtn:hover {
+    background-color: #FEE2E2;
+    border-color: #EF4444;
+    color: #B91C1C;
+}
+QPushButton#restartBtn:pressed {
+    background-color: #FECACA;
+}
+
 
 /* Sidebar Navigation Buttons */
 QPushButton#navBtn {
@@ -278,20 +302,62 @@ QProgressBar::chunk {
 }
 
 /* CheckBoxes & RadioButtons */
-QCheckBox, QRadioButton {
+QCheckBox {
     color: #1E2B4B;
     spacing: 8px;
+    font-weight: 500;
 }
-QCheckBox::indicator, QRadioButton::indicator {
-    width: 16px;
-    height: 16px;
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
     background-color: #FFFFFF;
-    border: 1px solid #CBD5E1;
-    border-radius: 0px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 4px;
 }
-QCheckBox::indicator:checked, QRadioButton::indicator:checked {
-    background-color: #6D59A7;
-    border-color: #5B4896;
+QCheckBox::indicator:hover {
+    border-color: #10B981;
+    background-color: #F8FAFC;
+}
+QCheckBox::indicator:checked {
+    background-color: #FFFFFF;
+    border: 1.5px solid #10B981;
+    image: url("__CHECKBOX_CHECKED__");
+}
+QCheckBox::indicator:checked:hover {
+    background-color: #F0FDF4;
+    border: 1.5px solid #059669;
+    image: url("__CHECKBOX_CHECKED_HOVER__");
+}
+QCheckBox::indicator:disabled {
+    background-color: #F1F5F9;
+    border-color: #E2E8F0;
+}
+
+QRadioButton {
+    color: #1E2B4B;
+    spacing: 8px;
+    font-weight: 500;
+}
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    background-color: #FFFFFF;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 9px;
+    image: url("__RADIO_UNCHECKED__");
+}
+QRadioButton::indicator:hover {
+    border-color: #6D59A7;
+}
+QRadioButton::indicator:checked {
+    background-color: #FFFFFF;
+    border: 1.5px solid #6D59A7;
+    border-radius: 9px;
+    image: url("__RADIO_CHECKED__");
+}
+QRadioButton::indicator:disabled {
+    background-color: #F1F5F9;
+    border-color: #E2E8F0;
 }
 
 /* Tabs */
@@ -323,4 +389,8 @@ QStatusBar {
     border-top: 1px solid #E5E0D6;
     padding: 4px 12px;
 }
-"""
+""".replace("__CHECKBOX_CHECKED__", CHECKBOX_CHECKED) \
+   .replace("__CHECKBOX_CHECKED_HOVER__", CHECKBOX_CHECKED_HOVER) \
+   .replace("__RADIO_CHECKED__", RADIO_CHECKED) \
+   .replace("__RADIO_UNCHECKED__", RADIO_UNCHECKED)
+
