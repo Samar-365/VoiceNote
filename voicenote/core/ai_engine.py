@@ -106,7 +106,9 @@ class AIEngine:
                     logger.warning(f"Fallback model {fb_model} failed: {fb_err}")
                     continue
 
-        raise last_error
+        if last_error:
+            raise last_error
+        raise RuntimeError("AI generation failed and no response was received.")
 
     def diarize_transcript(self, raw_transcript: str, language: Optional[str] = None) -> str:
         """
