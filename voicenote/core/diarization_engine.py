@@ -67,6 +67,9 @@ class DiarizationEngine:
         """
         Main entrypoint: Diarize transcript into clean conversational speaker turns.
         Tries Gemini AI first; falls back to linguistic & acoustic heuristic diarizer.
+        
+        For multilingual content (Marathi/Hindi + English code-switching),
+        the AI diarizer preserves Devanagari script and keeps English words as-is.
         """
         raw_clean = self.strip_timestamps(raw_transcript)
         if not raw_clean.strip():
@@ -79,7 +82,7 @@ class DiarizationEngine:
         # 1. Attempt AI-based Diarization via Gemini
         if self.ai_engine:
             try:
-                logger.info("Executing AI-powered conversational speaker diarization...")
+                logger.info(f"Executing AI-powered conversational speaker diarization (language={language})...")
                 ai_formatted = self.ai_engine.diarize_transcript(raw_clean, language=language)
                 turns = self.parse_speaker_turns(ai_formatted)
                 if turns and len(turns) >= 1:
