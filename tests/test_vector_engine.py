@@ -207,3 +207,19 @@ def test_add_timestamped_segments_with_corrected_text(tmp_path):
     assert metadata["corrected_transcript"] == corrected_text
     assert metadata["start_time"] == 0.0
     assert metadata["end_time"] == 5.0
+
+
+def test_delete_all(tmp_path):
+    engine = VectorEngine(
+        persist_directory=str(tmp_path / "chroma_db")
+    )
+
+    engine.add_transcript(note_id="note_1", transcript="First note transcript content.")
+    engine.add_transcript(note_id="note_2", transcript="Second note transcript content.")
+
+    assert engine.count() == 2
+
+    deleted_count = engine.delete_all()
+
+    assert deleted_count == 2
+    assert engine.count() == 0

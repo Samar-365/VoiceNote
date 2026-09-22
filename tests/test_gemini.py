@@ -16,7 +16,7 @@ def main():
     client = genai.Client(api_key=api_key)
 
     response = client.models.generate_content(
-        model="gemini-3.6-flash",
+        model="gemini-3.8-flash",
         contents="Say hello to the VoiceNote project in one sentence."
     )
 
