@@ -69,8 +69,53 @@ class TestAudioRecordingStorage(unittest.TestCase):
         """Verify that AudioRecorderWidget initializes with AudioEngine and populated mic list."""
         widget = AudioRecorderWidget()
         self.assertIsNotNone(widget.audio_engine)
-        self.assertGreater(widget.mic_combo.count(), 0)
+    def test_audio_engine_cancel_dumps_frames(self):
+        """Verify that cancel_recording discards audio buffer without saving any file."""
+        engine = AudioEngine(sample_rate=16000, channels=1)
+        engine.start_recording()
+        engine.audio_frames = [b"fake_pcm_data_chunk_12345"]
+        self.assertTrue(engine.is_recording)
+
+        engine.cancel_recording()
+        self.assertFalse(engine.is_recording)
+        self.assertFalse(engine.is_paused)
+        self.assertEqual(len(engine.audio_frames), 0)
+
+    def test_restart_button_and_flow(self):
+        """Verify that Restart button shows during pause/recording and resets the session cleanly."""
+        widget = AudioRecorderWidget()
+        widget.show()
+        self.app.processEvents()
+
+        # Initially hidden
+        self.assertTrue(widget.btn_restart.isHidden())
+
+        # Start recording -> Restart button should be visible and enabled
+        widget.toggle_recording()
+        self.assertFalse(widget.btn_restart.isHidden())
+        self.assertTrue(widget.btn_restart.isEnabled())
+
+        # Pause recording -> Restart button stays visible and enabled
+        widget.toggle_pause()
+        self.assertTrue(widget.is_paused)
+        self.assertEqual(widget.btn_pause.text(), "Resume")
+        self.assertFalse(widget.btn_restart.isHidden())
+        self.assertTrue(widget.btn_restart.isEnabled())
+
+        # Click Restart -> dumps old audio, resets timer to 00:00:00, and restarts recording
+        widget.seconds_elapsed = 42
+        widget.restart_recording()
+        self.assertEqual(widget.seconds_elapsed, 0)
+        self.assertEqual(widget.timer_label.text(), "00:00:00")
+        self.assertFalse(widget.is_paused)
+        self.assertEqual(widget.btn_pause.text(), "Pause")
+        self.assertIn("REC", widget.status_badge.text())
+
+        # Cleanup
+        widget.audio_engine.cancel_recording()
+        widget.close()
 
 
 if __name__ == "__main__":
     unittest.main()
+

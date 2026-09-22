@@ -22,6 +22,9 @@ def run_db_tests():
         from voicenote.db import get_db
         db = get_db()
         count = db.get_note_count()
+        if count == 0:
+            db._seed_sample_data()
+            count = db.get_note_count()
         tasks = len(db.get_all_tasks())
         logger.info(f"[OK] PostgreSQL loaded cleanly (Notes: {count}, Tasks: {tasks})")
         return True
@@ -91,8 +94,11 @@ def run_gui_import_tests():
     try:
         from voicenote.ui.styles import MAIN_STYLE
         from voicenote.services.worker import PipelineWorker
+        from voicenote.core.transcript_corrector import TranscriptCorrector
         assert len(MAIN_STYLE) > 0
-        logger.info("[OK] GUI & Service worker components loaded successfully.")
+        corrector = TranscriptCorrector()
+        assert corrector is not None
+        logger.info("[OK] GUI, Service worker & TranscriptCorrector components loaded successfully.")
         return True
     except Exception as e:
         logger.error(f"[ERROR] GUI import test failed: {e}")
@@ -150,6 +156,22 @@ def run_auth_tests():
         return False
 
 
+def run_vector_engine_tests():
+    logger.info("--- Testing Vector Engine & ChromaDB ---")
+    try:
+        import pytest
+        ret_code = pytest.main(["-q", "tests/test_vector_engine.py"])
+        if ret_code == 0:
+            logger.info("[OK] Vector Engine ChromaDB tests passed.")
+            return True
+        else:
+            logger.error(f"[ERROR] Vector Engine tests returned non-zero code: {ret_code}")
+            return False
+    except Exception as e:
+        logger.error(f"[ERROR] Vector Engine tests failed: {e}")
+        return False
+
+
 def main():
     print("=" * 60)
     print("           VOICENOTE COMPREHENSIVE TEST SUITE           ")
@@ -163,6 +185,7 @@ def main():
         ("Export Engine (PDF/DOCX/TXT)", run_export_engine_tests()),
         ("Analytics Engine", run_analytics_engine_tests()),
         ("AI Engine Validation", run_ai_engine_tests()),
+        ("Vector Engine (ChromaDB)", run_vector_engine_tests()),
         ("GUI & Service Workers", run_gui_import_tests()),
     ]
     

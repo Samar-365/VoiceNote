@@ -167,6 +167,22 @@ class TestPostgreSQLDatabaseManager(unittest.TestCase):
         self.assertEqual(self.db.get_note_count(), 0)
 
 
+    def test_get_note_by_title(self):
+        if self.db is None:
+            self.skipTest("PostgreSQL server not running locally or auth failed.")
+        note = Note(title="Unique Title Test Note", duration="00:45")
+        note_id = self.db.add_note(note)
+        self.assertIsNotNone(note_id)
+
+        retrieved = self.db.get_note_by_title("Unique Title Test Note")
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved["id"], note_id)
+        self.assertEqual(retrieved["title"], "Unique Title Test Note")
+
+        # Clean up
+        self.db.delete_note(note_id)
+
+
 if __name__ == "__main__":
     unittest.main()
 

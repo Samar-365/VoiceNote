@@ -5,9 +5,13 @@ and transcripts to PDF, Word (DOCX), and Plain Text (TXT) formats.
 """
 
 import os
+import re
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Union
+
+logger = logging.getLogger("ExportEngine")
 
 
 class ExportEngine:
@@ -16,9 +20,47 @@ class ExportEngine:
     DEFAULT_OPTIONS = {
         "include_summary": True,
         "include_tasks": True,
+        "include_decisions": True,
+        "include_deadlines": True,
+        "include_risks": True,
+        "include_questions": True,
         "include_transcript": True,
         "include_metadata": True,
+        "include_timestamps": False,
     }
+
+    @staticmethod
+    def _register_pdf_fonts() -> tuple[str, str]:
+        """
+        Register Unicode TrueType fonts in ReportLab for Marathi, Hindi, and English support.
+        Returns (regular_font_name, bold_font_name).
+        """
+        try:
+            from reportlab.pdfbase import pdfmetrics
+            from reportlab.pdfbase.ttfonts import TTFont
+        except ImportError:
+            return "Helvetica", "Helvetica-Bold"
+
+        font_dir = Path(__file__).resolve().parent.parent.parent / "assets" / "fonts"
+
+        # Check font candidates
+        candidates = [
+            (font_dir / "NirmalaUI-Regular.ttf", font_dir / "NirmalaUI-Bold.ttf"),
+            (font_dir / "NotoSansDevanagari-VF.ttf", font_dir / "NotoSansDevanagari-VF.ttf"),
+            (font_dir / "NotoSansDevanagari-Regular.ttf", font_dir / "NotoSansDevanagari-Bold.ttf"),
+        ]
+
+        for reg_path, bold_path in candidates:
+            if reg_path.exists() and bold_path.exists():
+                try:
+                    pdfmetrics.registerFont(TTFont("NotoSansDevanagari", str(reg_path)))
+                    pdfmetrics.registerFont(TTFont("NotoSansDevanagari-Bold", str(bold_path)))
+                    logger.debug(f"Registered PDF Unicode fonts from: {reg_path.name}")
+                    return "NotoSansDevanagari", "NotoSansDevanagari-Bold"
+                except Exception as e:
+                    logger.warning(f"Failed to register font {reg_path.name}: {e}")
+
+        return "Helvetica", "Helvetica-Bold"
 
     def __init__(self):
         pass
@@ -152,6 +194,12 @@ class ExportEngine:
                     }
                 )
         data["tasks"] = norm_tasks
+        data["decisions"] = data.get("decisions") or []
+        data["deadlines"] = data.get("deadlines") or []
+        data["important_numbers"] = data.get("important_numbers") or []
+        data["risks_blockers"] = data.get("risks_blockers") or []
+        data["open_questions"] = data.get("open_questions") or []
+        data["follow_ups"] = data.get("follow_ups") or []
 
         # Transcript
         transcript = (
@@ -217,6 +265,7 @@ class ExportEngine:
         )
 
         styles = getSampleStyleSheet()
+        font_regular, font_bold = self._register_pdf_fonts()
 
         # Custom Brand Color Palette
         c_primary = colors.HexColor("#1E2B4B")  # Deep Navy
@@ -227,11 +276,11 @@ class ExportEngine:
         c_sub = colors.HexColor("#718096")  # Subtitle
         c_badge_bg = colors.HexColor("#EDE8DF")  # Badge Background
 
-        # Custom Typography Styles
+        # Custom Typography Styles with Unicode Devanagari Font Support
         title_style = ParagraphStyle(
             "DocTitle",
             parent=styles["Normal"],
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=22,
             leading=26,
             textColor=c_primary,
@@ -241,7 +290,7 @@ class ExportEngine:
         subtitle_style = ParagraphStyle(
             "DocSubtitle",
             parent=styles["Normal"],
-            fontName="Helvetica",
+            fontName=font_regular,
             fontSize=10,
             leading=14,
             textColor=c_sub,
@@ -251,7 +300,7 @@ class ExportEngine:
         h2_style = ParagraphStyle(
             "DocHeading2",
             parent=styles["Normal"],
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=13,
             leading=17,
             textColor=c_primary,
@@ -262,9 +311,9 @@ class ExportEngine:
         body_style = ParagraphStyle(
             "DocBody",
             parent=styles["Normal"],
-            fontName="Helvetica",
+            fontName=font_regular,
             fontSize=10,
-            leading=14,
+            leading=15,
             textColor=c_dark,
             spaceAfter=6,
         )
@@ -272,16 +321,16 @@ class ExportEngine:
         callout_style = ParagraphStyle(
             "DocCallout",
             parent=styles["Normal"],
-            fontName="Helvetica-Oblique",
+            fontName=font_regular,
             fontSize=10,
-            leading=14,
+            leading=15,
             textColor=c_primary,
         )
 
         meta_label_style = ParagraphStyle(
             "MetaLabel",
             parent=styles["Normal"],
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=9,
             leading=12,
             textColor=c_primary,
@@ -290,7 +339,7 @@ class ExportEngine:
         meta_val_style = ParagraphStyle(
             "MetaVal",
             parent=styles["Normal"],
-            fontName="Helvetica",
+            fontName=font_regular,
             fontSize=9,
             leading=12,
             textColor=c_dark,
@@ -299,7 +348,7 @@ class ExportEngine:
         table_header_style = ParagraphStyle(
             "TableHeader",
             parent=styles["Normal"],
-            fontName="Helvetica-Bold",
+            fontName=font_bold,
             fontSize=9,
             leading=12,
             textColor=colors.white,
@@ -308,9 +357,9 @@ class ExportEngine:
         table_cell_style = ParagraphStyle(
             "TableCell",
             parent=styles["Normal"],
-            fontName="Helvetica",
+            fontName=font_regular,
             fontSize=8.5,
-            leading=11,
+            leading=12,
             textColor=c_dark,
         )
 
@@ -460,7 +509,41 @@ class ExportEngine:
                 story.append(task_table)
                 story.append(Spacer(1, 10))
 
-        # 5. Full Transcript with Timestamps (if enabled)
+        # Decisions Section
+        if options.get("include_decisions", True) and note_data.get("decisions"):
+            story.append(Paragraph("Key Decisions Captured", h2_style))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=c_border, spaceBefore=0, spaceAfter=8))
+            for dec in note_data.get("decisions", []):
+                story.append(Paragraph(f"<font color='#10B981'><b>✓</b></font> {dec}", body_style))
+            story.append(Spacer(1, 8))
+
+        # Deadlines & Commitments Section
+        if options.get("include_deadlines", True) and note_data.get("deadlines"):
+            story.append(Paragraph("Deadlines & Commitments", h2_style))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=c_border, spaceBefore=0, spaceAfter=8))
+            for dl in note_data.get("deadlines", []):
+                d_date = dl.get("date", "") if isinstance(dl, dict) else str(dl)
+                d_comm = dl.get("commitment", "") if isinstance(dl, dict) else ""
+                story.append(Paragraph(f"<b>{d_date}</b> — {d_comm}", body_style))
+            story.append(Spacer(1, 8))
+
+        # Risks & Blockers Section
+        if options.get("include_risks", True) and note_data.get("risks_blockers"):
+            story.append(Paragraph("Risks & Blockers", h2_style))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=c_border, spaceBefore=0, spaceAfter=8))
+            for r in note_data.get("risks_blockers", []):
+                story.append(Paragraph(f"<font color='#D97706'><b>⚠</b></font> {r}", body_style))
+            story.append(Spacer(1, 8))
+
+        # Open Questions Section
+        if options.get("include_questions", True) and note_data.get("open_questions"):
+            story.append(Paragraph("Open Questions & Follow-ups", h2_style))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=c_border, spaceBefore=0, spaceAfter=8))
+            for q in note_data.get("open_questions", []):
+                story.append(Paragraph(f"<font color='#2563EB'><b>?</b></font> {q}", body_style))
+            story.append(Spacer(1, 8))
+
+        # 5. Full Transcript (Default NO Timestamps; Clean Speaker Formatting)
         if options.get("include_transcript", True):
             transcript_text = note_data.get("transcript", "").strip()
             if transcript_text:
@@ -475,7 +558,9 @@ class ExportEngine:
                     )
                 )
 
-                # Process transcript lines
+                include_timestamps = options.get("include_timestamps", False)
+                speaker_regex = re.compile(r"^(Speaker\s*\d+)\s*:\s*(.*)", re.IGNORECASE)
+
                 lines = transcript_text.split("\n")
                 for line in lines:
                     line_str = line.strip()
@@ -483,8 +568,24 @@ class ExportEngine:
                         story.append(Spacer(1, 4))
                         continue
 
-                    # If line has timestamp like [00:01:23] or Speaker:
-                    if line_str.startswith("[") and "]" in line_str:
+                    # Strip timestamps unless explicitly enabled
+                    if not include_timestamps:
+                        line_str = re.sub(r"\[\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\]", "", line_str)
+                        line_str = re.sub(r"\(\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\)", "", line_str).strip()
+
+                    if not line_str:
+                        continue
+
+                    # Standardize currency notation to Rs.
+                    line_str = re.sub(r"₹\s*(\d+)", r"Rs. \1", line_str)
+
+                    match = speaker_regex.match(line_str)
+                    if match:
+                        spk = match.group(1).title()
+                        content = match.group(2).strip()
+                        formatted_line = f"<font color='{c_accent.hexval()}'><b>{spk}:</b></font> {content}"
+                        story.append(Paragraph(formatted_line, body_style))
+                    elif line_str.startswith("[") and "]" in line_str and include_timestamps:
                         idx = line_str.find("]")
                         timestamp = line_str[: idx + 1]
                         rest = line_str[idx + 1 :].strip()
@@ -702,7 +803,87 @@ class ExportEngine:
 
                 doc.add_paragraph()
 
-        # 5. Full Audio Transcript (if enabled)
+        # Decisions Section (DOCX)
+        if options.get("include_decisions", True) and note_data.get("decisions"):
+            h_dec = doc.add_paragraph()
+            h_dec.paragraph_format.space_before = Pt(14)
+            h_dec.paragraph_format.space_after = Pt(6)
+            r_dec = h_dec.add_run("Key Decisions Captured")
+            r_dec.font.name = "Arial"
+            r_dec.font.size = Pt(13)
+            r_dec.font.bold = True
+            r_dec.font.color.rgb = c_primary_rgb
+
+            for dec in note_data.get("decisions", []):
+                p_d = doc.add_paragraph()
+                p_d.paragraph_format.space_after = Pt(4)
+                r_chk = p_d.add_run("✓ ")
+                r_chk.font.bold = True
+                r_chk.font.color.rgb = RGBColor(0x10, 0xB9, 0x81)
+                r_t = p_d.add_run(str(dec))
+                r_t.font.name = "Arial"
+                r_t.font.size = Pt(10)
+
+        # Deadlines Section (DOCX)
+        if options.get("include_deadlines", True) and note_data.get("deadlines"):
+            h_dl = doc.add_paragraph()
+            h_dl.paragraph_format.space_before = Pt(14)
+            h_dl.paragraph_format.space_after = Pt(6)
+            r_dl = h_dl.add_run("Deadlines & Commitments")
+            r_dl.font.name = "Arial"
+            r_dl.font.size = Pt(13)
+            r_dl.font.bold = True
+            r_dl.font.color.rgb = c_primary_rgb
+
+            for dl in note_data.get("deadlines", []):
+                p_dl = doc.add_paragraph()
+                p_dl.paragraph_format.space_after = Pt(4)
+                d_date = dl.get("date", "") if isinstance(dl, dict) else str(dl)
+                d_comm = dl.get("commitment", "") if isinstance(dl, dict) else ""
+                r_d = p_dl.add_run(f"• {d_date} — ")
+                r_d.font.bold = True
+                r_c = p_dl.add_run(str(d_comm))
+                r_c.font.name = "Arial"
+
+        # Risks Section (DOCX)
+        if options.get("include_risks", True) and note_data.get("risks_blockers"):
+            h_rk = doc.add_paragraph()
+            h_rk.paragraph_format.space_before = Pt(14)
+            h_rk.paragraph_format.space_after = Pt(6)
+            r_rk = h_rk.add_run("Risks & Blockers")
+            r_rk.font.name = "Arial"
+            r_rk.font.size = Pt(13)
+            r_rk.font.bold = True
+            r_rk.font.color.rgb = RGBColor(0xD9, 0x77, 0x06)
+
+            for r in note_data.get("risks_blockers", []):
+                p_r = doc.add_paragraph()
+                p_r.paragraph_format.space_after = Pt(4)
+                r_w = p_r.add_run("⚠ ")
+                r_w.font.color.rgb = RGBColor(0xD9, 0x77, 0x06)
+                r_rt = p_r.add_run(str(r))
+                r_rt.font.name = "Arial"
+
+        # Questions Section (DOCX)
+        if options.get("include_questions", True) and note_data.get("open_questions"):
+            h_q = doc.add_paragraph()
+            h_q.paragraph_format.space_before = Pt(14)
+            h_q.paragraph_format.space_after = Pt(6)
+            r_q = h_q.add_run("Open Questions & Follow-ups")
+            r_q.font.name = "Arial"
+            r_q.font.size = Pt(13)
+            r_q.font.bold = True
+            r_q.font.color.rgb = RGBColor(0x25, 0x63, 0xEB)
+
+            for q in note_data.get("open_questions", []):
+                p_q = doc.add_paragraph()
+                p_q.paragraph_format.space_after = Pt(4)
+                r_qm = p_q.add_run("? ")
+                r_qm.font.color.rgb = RGBColor(0x25, 0x63, 0xEB)
+                r_qt = p_q.add_run(str(q))
+                r_qt.font.name = "Arial"
+
+        # 5. Full Audio Transcript (Default NO Timestamps; Speaker Formatted)
         if options.get("include_transcript", True):
             transcript_text = note_data.get("transcript", "").strip()
             if transcript_text:
@@ -710,37 +891,51 @@ class ExportEngine:
                 h_tr.paragraph_format.space_before = Pt(14)
                 h_tr.paragraph_format.space_after = Pt(6)
                 r_tr = h_tr.add_run("Complete Audio Transcript")
-                r_tr.font.name = "Arial"
+                r_tr.font.name = "Noto Sans Devanagari"
                 r_tr.font.size = Pt(13)
                 r_tr.font.bold = True
                 r_tr.font.color.rgb = c_primary_rgb
+
+                include_timestamps = options.get("include_timestamps", False)
+                speaker_regex = re.compile(r"^(Speaker\s*\d+)\s*:\s*(.*)", re.IGNORECASE)
 
                 lines = transcript_text.split("\n")
                 for line in lines:
                     line_str = line.strip()
                     if not line_str:
                         continue
+
+                    # Strip timestamps unless explicitly requested
+                    if not include_timestamps:
+                        line_str = re.sub(r"\[\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\]", "", line_str)
+                        line_str = re.sub(r"\(\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\)", "", line_str).strip()
+
+                    if not line_str:
+                        continue
+
+                    line_str = re.sub(r"₹\s*(\d+)", r"Rs. \1", line_str)
+
                     p_line = doc.add_paragraph()
                     p_line.paragraph_format.space_after = Pt(4)
 
-                    if line_str.startswith("[") and "]" in line_str:
-                        idx = line_str.find("]")
-                        timestamp = line_str[: idx + 1]
-                        rest = line_str[idx + 1 :].strip()
+                    match = speaker_regex.match(line_str)
+                    if match:
+                        spk = match.group(1).title()
+                        content = match.group(2).strip()
 
-                        r_time = p_line.add_run(f"{timestamp} ")
-                        r_time.font.name = "Arial"
-                        r_time.font.size = Pt(9.5)
-                        r_time.font.bold = True
-                        r_time.font.color.rgb = c_accent_rgb
+                        r_spk = p_line.add_run(f"{spk}: ")
+                        r_spk.font.name = "Noto Sans Devanagari"
+                        r_spk.font.size = Pt(10)
+                        r_spk.font.bold = True
+                        r_spk.font.color.rgb = c_accent_rgb
 
-                        r_rest = p_line.add_run(rest)
-                        r_rest.font.name = "Arial"
-                        r_rest.font.size = Pt(9.5)
+                        r_rest = p_line.add_run(content)
+                        r_rest.font.name = "Noto Sans Devanagari"
+                        r_rest.font.size = Pt(10)
                     else:
                         r_plain = p_line.add_run(line_str)
-                        r_plain.font.name = "Arial"
-                        r_plain.font.size = Pt(9.5)
+                        r_plain.font.name = "Noto Sans Devanagari"
+                        r_plain.font.size = Pt(10)
 
         # Save document
         doc.save(output_path)
@@ -812,14 +1007,55 @@ class ExportEngine:
                 out.append("-" * 60)
                 out.append("")
 
-        # 4. Transcript
+        # 4. Key Decisions (TXT)
+        if options.get("include_decisions", True) and note_data.get("decisions"):
+            out.append("[ KEY DECISIONS CAPTURED ]")
+            for d in note_data.get("decisions", []):
+                out.append(f"  ✓ {d}")
+            out.append("-" * 60)
+            out.append("")
+
+        # 5. Deadlines & Commitments (TXT)
+        if options.get("include_deadlines", True) and note_data.get("deadlines"):
+            out.append("[ DEADLINES & COMMITMENTS ]")
+            for dl in note_data.get("deadlines", []):
+                d_date = dl.get("date", "") if isinstance(dl, dict) else str(dl)
+                d_comm = dl.get("commitment", "") if isinstance(dl, dict) else ""
+                out.append(f"  • {d_date} : {d_comm}")
+            out.append("-" * 60)
+            out.append("")
+
+        # 6. Risks & Blockers (TXT)
+        if options.get("include_risks", True) and note_data.get("risks_blockers"):
+            out.append("[ RISKS & BLOCKERS ]")
+            for r in note_data.get("risks_blockers", []):
+                out.append(f"  ⚠ {r}")
+            out.append("-" * 60)
+            out.append("")
+
+        # 7. Open Questions (TXT)
+        if options.get("include_questions", True) and note_data.get("open_questions"):
+            out.append("[ OPEN QUESTIONS & FOLLOW-UPS ]")
+            for q in note_data.get("open_questions", []):
+                out.append(f"  ? {q}")
+            out.append("-" * 60)
+            out.append("")
+
+        # 8. Transcript (Default NO Timestamps)
         if options.get("include_transcript", True):
             transcript = note_data.get("transcript", "").strip()
             if transcript:
                 out.append("[ COMPLETE AUDIO TRANSCRIPT ]")
                 out.append("")
+                include_timestamps = options.get("include_timestamps", False)
                 for line in transcript.split("\n"):
-                    out.append(f"  {line}")
+                    l_str = line.strip()
+                    if not include_timestamps:
+                        l_str = re.sub(r"\[\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\]", "", l_str)
+                        l_str = re.sub(r"\(\s*\d{1,2}:\d{2}(?::\d{2})?(?:\.\d+)?\s*\)", "", l_str).strip()
+                    if l_str:
+                        l_str = re.sub(r"₹\s*(\d+)", r"Rs. \1", l_str)
+                        out.append(f"  {l_str}")
                 out.append("")
                 out.append("=" * 60)
 

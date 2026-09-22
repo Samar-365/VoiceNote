@@ -28,7 +28,8 @@ dist/
 # Local Data & Database
 data/
 *.db
-
+chroma_db/
+scratch/
 
 test_pipeline_chroma_db/
 

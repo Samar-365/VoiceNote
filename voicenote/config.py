@@ -10,6 +10,7 @@ VERSION = "0.1.0"
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 GROQ_STT_MODEL = "whisper-large-v3"
 LOCAL_STT_MODEL = "small"

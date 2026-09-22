@@ -1,11 +1,17 @@
-"""QSS Stylesheet with sharp edges and 100% uniform warm cream background canvas (matching assets/ screenshots)."""
+from pathlib import Path
+
+ASSETS_DIR = Path(__file__).resolve().parent.parent.parent / "assets"
+CHECKBOX_CHECKED = (ASSETS_DIR / "checkbox_checked.png").as_posix()
+CHECKBOX_CHECKED_HOVER = (ASSETS_DIR / "checkbox_checked_hover.png").as_posix()
+RADIO_CHECKED = (ASSETS_DIR / "radio_checked.png").as_posix()
+RADIO_UNCHECKED = (ASSETS_DIR / "radio_unchecked.png").as_posix()
 
 MAIN_STYLE = """
 /* Global Window & Background Canvas - Uniform Soft Warm Cream #ECE7DF */
 QMainWindow, QDialog, QStackedWidget, QScrollArea, QAbstractScrollArea, QWidget#centralWidget {
     background-color: #ECE7DF;
     color: #4A3980;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 13px;
 }
 
@@ -136,6 +142,24 @@ QPushButton#stopBtn:hover {
     background-color: #475569;
 }
 
+/* Restart Button (Warm Crimson Accent #DC2626 on Pale Rose) */
+QPushButton#restartBtn {
+    background-color: #FFF5F5;
+    border: 1px solid #FCA5A5;
+    color: #DC2626;
+    border-radius: 0px;
+    font-weight: 700;
+}
+QPushButton#restartBtn:hover {
+    background-color: #FEE2E2;
+    border-color: #EF4444;
+    color: #B91C1C;
+}
+QPushButton#restartBtn:pressed {
+    background-color: #FECACA;
+}
+
+
 /* Sidebar Navigation Buttons */
 QPushButton#navBtn {
     background-color: transparent;
@@ -160,19 +184,25 @@ QPushButton#navBtn[active="true"] {
 QFrame#cardFrame {
     background-color: #FFFFFF;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
 }
 
 QFrame#heroCard {
     background-color: #FFFFFF;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
 }
 
 QFrame#glassFrame {
     background-color: #F8F6F0;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
+}
+
+/* Global Text & Labels - strictly no borders or outlines */
+QLabel {
+    border: none;
+    background: transparent;
 }
 
 /* Titles & Text */
@@ -180,20 +210,24 @@ QLabel#titleLabel {
     font-size: 18px;
     font-weight: 800;
     color: #1E2B4B;
+    border: none;
+    background: transparent;
 }
 
 QLabel#subtitleLabel {
     color: #5C6479;
     font-size: 13px;
+    border: none;
+    background: transparent;
 }
 
-/* Badges & Status Chips */
+/* Badges & Status Chips - Clean soft pill design without harsh border boxes */
 QLabel#badgeActive {
     background-color: #EBF3EC;
     color: #2E7D32;
-    border: 1px solid #A6D7AC;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -201,9 +235,9 @@ QLabel#badgeActive {
 QLabel#badgePurple {
     background-color: #F2EFF9;
     color: #6D59A7;
-    border: 1px solid #D8D0EB;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -211,9 +245,9 @@ QLabel#badgePurple {
 QLabel#badgeCyan {
     background-color: #EEF2F6;
     color: #3B82F6;
-    border: 1px solid #CBD5E1;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -221,9 +255,9 @@ QLabel#badgeCyan {
 QLabel#badgeAmber {
     background-color: #FEF6E6;
     color: #D97706;
-    border: 1px solid #FCD34D;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -231,9 +265,9 @@ QLabel#badgeAmber {
 QLabel#badgeRose {
     background-color: #FCE8EC;
     color: #E05A77;
-    border: 1px solid #F5B0C0;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -278,20 +312,62 @@ QProgressBar::chunk {
 }
 
 /* CheckBoxes & RadioButtons */
-QCheckBox, QRadioButton {
+QCheckBox {
     color: #1E2B4B;
     spacing: 8px;
+    font-weight: 500;
 }
-QCheckBox::indicator, QRadioButton::indicator {
-    width: 16px;
-    height: 16px;
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
     background-color: #FFFFFF;
-    border: 1px solid #CBD5E1;
-    border-radius: 0px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 4px;
 }
-QCheckBox::indicator:checked, QRadioButton::indicator:checked {
-    background-color: #6D59A7;
-    border-color: #5B4896;
+QCheckBox::indicator:hover {
+    border-color: #10B981;
+    background-color: #F8FAFC;
+}
+QCheckBox::indicator:checked {
+    background-color: #FFFFFF;
+    border: 1.5px solid #10B981;
+    image: url("__CHECKBOX_CHECKED__");
+}
+QCheckBox::indicator:checked:hover {
+    background-color: #F0FDF4;
+    border: 1.5px solid #059669;
+    image: url("__CHECKBOX_CHECKED_HOVER__");
+}
+QCheckBox::indicator:disabled {
+    background-color: #F1F5F9;
+    border-color: #E2E8F0;
+}
+
+QRadioButton {
+    color: #1E2B4B;
+    spacing: 8px;
+    font-weight: 500;
+}
+QRadioButton::indicator {
+    width: 18px;
+    height: 18px;
+    background-color: #FFFFFF;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 9px;
+    image: url("__RADIO_UNCHECKED__");
+}
+QRadioButton::indicator:hover {
+    border-color: #6D59A7;
+}
+QRadioButton::indicator:checked {
+    background-color: #FFFFFF;
+    border: 1.5px solid #6D59A7;
+    border-radius: 9px;
+    image: url("__RADIO_CHECKED__");
+}
+QRadioButton::indicator:disabled {
+    background-color: #F1F5F9;
+    border-color: #E2E8F0;
 }
 
 /* Tabs */
@@ -323,4 +399,8 @@ QStatusBar {
     border-top: 1px solid #E5E0D6;
     padding: 4px 12px;
 }
-"""
+""".replace("__CHECKBOX_CHECKED__", CHECKBOX_CHECKED) \
+   .replace("__CHECKBOX_CHECKED_HOVER__", CHECKBOX_CHECKED_HOVER) \
+   .replace("__RADIO_CHECKED__", RADIO_CHECKED) \
+   .replace("__RADIO_UNCHECKED__", RADIO_UNCHECKED)
+

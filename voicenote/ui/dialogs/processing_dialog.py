@@ -31,10 +31,11 @@ class ProcessingDialog(QDialog):
         card_layout.setContentsMargins(24, 20, 24, 20)
         card_layout.setSpacing(12)
 
+        from voicenote.ui.icon_helper import get_svg_pixmap
         # Header Row with Icon & Title
         header_row = QHBoxLayout()
-        icon_lbl = QLabel("🎙️")
-        icon_lbl.setStyleSheet("font-size: 24px;")
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(get_svg_pixmap("activity", color="#6D59A7", size=24))
         
         title_v = QVBoxLayout()
         self.lbl_title = QLabel(title_text)

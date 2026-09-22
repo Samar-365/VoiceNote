@@ -1,3 +1,4 @@
+from typing import Optional
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QStackedWidget, QScrollArea, QFrame, QGridLayout, QMessageBox, QStatusBar
@@ -15,6 +16,11 @@ try:
     from voicenote.services.worker import PipelineWorker
 except Exception:
     PipelineWorker = None
+
+try:
+    from voicenote.core.vector_engine import VectorEngine
+except Exception:
+    VectorEngine = None
 from voicenote.ui.styles import MAIN_STYLE
 from voicenote.ui.components.sidebar import SidebarWidget
 from voicenote.ui.components.header import HeaderWidget
@@ -43,6 +49,12 @@ class MainWindow(QMainWindow):
         
         self.db = get_db()
         self.worker = None
+        self.vector_engine = None
+        if VectorEngine:
+            try:
+                self.vector_engine = VectorEngine()
+            except Exception:
+                pass
         self.processing_dialog = None
         self.current_selected_note_title = None
         self.init_ui()
@@ -179,7 +191,7 @@ class MainWindow(QMainWindow):
         r_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #1E2B4B;")
         
         btn_clear_all = QPushButton("Remove All Recordings")
-        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: 1px solid #FADBD8; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 0px;")
+        btn_clear_all.setStyleSheet("background-color: #FFF5F5; border: none; color: #C0392B; font-weight: 700; font-size: 11px; padding: 5px 12px; border-radius: 6px;")
         btn_clear_all.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_clear_all.clicked.connect(self.on_delete_all_notes)
 
@@ -275,12 +287,19 @@ class MainWindow(QMainWindow):
             tags=tags,
             metadata_info=meta_str
         )
-        if note_data.get("summary"):
+        note_id = note_data.get("id")
+        if note_id:
+            self.summary_task_view.set_note_context(
+                note_id=note_id,
+                title=note_title,
+                duration=note_data.get("duration", "00:00"),
+                transcript_text=transcript_text
+            )
+        elif note_data.get("summary"):
             self.summary_task_view.set_ai_data(
                 summary=note_data.get("summary"),
                 key_points=note_data.get("key_points", []),
-                tasks=note_data.get("tasks", []),
-                model_name="Gemini 2.5 Flash"
+                tasks=note_data.get("tasks", [])
             )
 
     def _fetch_full_note_data(self, note_title: str) -> dict:
@@ -330,7 +349,7 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def on_delete_note(self, note_title: str):
-        """Prompt confirmation and delete the selected note and its recording."""
+        """Prompt confirmation and delete the selected note, audio recording, and vector embeddings."""
         reply = QMessageBox.question(
             self,
             "Remove Recording & Note",
@@ -339,12 +358,29 @@ class MainWindow(QMainWindow):
             QMessageBox.StandardButton.No
         )
         if reply == QMessageBox.StandardButton.Yes:
+            note_id = None
             if self.db:
+                try:
+                    note = self.db.get_note_by_title(note_title)
+                    if note:
+                        note_id = note.get("id")
+                except Exception:
+                    pass
+
                 success = self.db.delete_note_by_title(note_title)
                 if success:
                     self.status_bar.showMessage(f"Voice Note '{note_title}' removed successfully.")
                 else:
                     self.status_bar.showMessage(f"Could not remove '{note_title}'.")
+
+            # Clean up vector database embeddings
+            if note_id:
+                v_eng = self.vector_engine or (self.semantic_search_view._get_vector_engine() if hasattr(self, "semantic_search_view") else None)
+                if v_eng:
+                    try:
+                        v_eng.delete_note(note_id)
+                    except Exception:
+                        pass
             
             # Reset views if active note was deleted
             if self.current_selected_note_title == note_title:
@@ -355,6 +391,8 @@ class MainWindow(QMainWindow):
             self.refresh_notes_list()
             if hasattr(self, "analytics_view"):
                 self.analytics_view.refresh_data()
+            if hasattr(self, "semantic_search_view"):
+                self.semantic_search_view.reset()
 
     def on_delete_all_notes(self):
         """Prompt confirmation and purge all recordings, notes, transcripts, summaries, and tasks."""
@@ -374,6 +412,14 @@ class MainWindow(QMainWindow):
             if self.db:
                 deleted_count = self.db.delete_all_notes()
                 self.status_bar.showMessage(f"All {deleted_count} voice notes and recordings removed.")
+
+            # Purge all embeddings in ChromaDB
+            v_eng = self.vector_engine or (self.semantic_search_view._get_vector_engine() if hasattr(self, "semantic_search_view") else None)
+            if v_eng:
+                try:
+                    v_eng.delete_all()
+                except Exception:
+                    pass
             
             # Reset active views
             self.current_selected_note_title = None
@@ -383,6 +429,8 @@ class MainWindow(QMainWindow):
             self.refresh_notes_list()
             if hasattr(self, "analytics_view"):
                 self.analytics_view.refresh_data()
+            if hasattr(self, "semantic_search_view"):
+                self.semantic_search_view.reset()
             
             QMessageBox.information(self, "Recordings Cleared", "All voice notes and audio recordings have been successfully removed.")
 
@@ -406,7 +454,7 @@ class MainWindow(QMainWindow):
         self.close()
 
 
-    def on_new_recording_finished(self, raw_text_or_path: str):
+    def on_new_recording_finished(self, raw_text_or_path: str, language: Optional[str] = None):
         self.status_bar.showMessage("Recording saved to data/recording • Processing AI Pipeline...")
         
         # Open and show animated processing loader dialog
@@ -432,7 +480,8 @@ class MainWindow(QMainWindow):
                 self.worker = PipelineWorker(
                     audio_path=audio_file,
                     raw_transcript=raw_text,
-                    title=title_name
+                    title=title_name,
+                    language=language
                 )
                 self.worker.progress.connect(self._on_pipeline_progress)
                 self.worker.finished.connect(self.on_pipeline_success)
@@ -502,7 +551,10 @@ class MainWindow(QMainWindow):
 
     def on_pipeline_error(self, err_msg: str):
         if self.processing_dialog:
-            self.processing_dialog.close()
+            try:
+                self.processing_dialog.close()
+            except Exception:
+                pass
             self.processing_dialog = None
 
         self.status_bar.showMessage("Error processing voice note.")

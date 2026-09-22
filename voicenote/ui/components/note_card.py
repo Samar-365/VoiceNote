@@ -54,17 +54,17 @@ class NoteCard(QFrame):
         bottom_row.addStretch()
 
         btn_export = QPushButton("Export")
-        btn_export.setStyleSheet("padding: 4px 10px; font-size: 11px; background: #FFFFFF; color: #1E2B4B; border: 1px solid #E2DDD3;")
+        btn_export.setStyleSheet("padding: 5px 12px; font-size: 11px; background: #FFFFFF; color: #1E2B4B; border: 1px solid #E2DDD3; border-radius: 6px; font-weight: 600;")
         btn_export.clicked.connect(lambda: self.export_clicked.emit(self.note_title))
 
         btn_delete = QPushButton("Remove")
-        btn_delete.setStyleSheet("padding: 4px 10px; font-size: 11px; background: #FFF5F5; color: #C0392B; border: 1px solid #FADBD8; font-weight: 600;")
+        btn_delete.setStyleSheet("padding: 5px 12px; font-size: 11px; background: #FFF5F5; color: #C0392B; border: none; font-weight: 700; border-radius: 6px;")
         btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_delete.clicked.connect(lambda: self.delete_clicked.emit(self.note_title))
 
         btn_view = QPushButton("View Note")
         btn_view.setObjectName("primaryBtn")
-        btn_view.setStyleSheet("padding: 4px 12px; font-size: 11px;")
+        btn_view.setStyleSheet("padding: 5px 14px; font-size: 11px; border-radius: 6px;")
         btn_view.clicked.connect(lambda: self.view_clicked.emit(self.note_title))
 
         bottom_row.addWidget(btn_export)
