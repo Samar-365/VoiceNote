@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, Union, List
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QPushButton,
     QCheckBox, QRadioButton, QButtonGroup, QFrame, QLineEdit,
     QFileDialog, QMessageBox, QComboBox
 )
@@ -37,7 +37,8 @@ class ExportDialog(QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Export Voice Note")
-        self.setFixedSize(560, 580)
+        self.resize(580, 680)
+        self.setMinimumSize(560, 640)
 
         # Initialize export engine & database
         self.export_engine = ExportEngine()
@@ -108,6 +109,12 @@ class ExportDialog(QDialog):
                 "summary": summary_data.get("summary", target.get("summary", "")) if summary_data else target.get("summary", ""),
                 "key_points": summary_data.get("key_points", target.get("key_points", [])) if summary_data else target.get("key_points", []),
                 "sentiment": summary_data.get("sentiment", "Neutral") if summary_data else "Neutral",
+                "decisions": summary_data.get("decisions", []) if summary_data else [],
+                "deadlines": summary_data.get("deadlines", []) if summary_data else [],
+                "important_numbers": summary_data.get("important_numbers", []) if summary_data else [],
+                "risks_blockers": summary_data.get("risks_blockers", []) if summary_data else [],
+                "open_questions": summary_data.get("open_questions", []) if summary_data else [],
+                "follow_ups": summary_data.get("follow_ups", []) if summary_data else [],
                 "tasks": note_tasks,
                 "transcript": raw_t,
             }
@@ -124,6 +131,12 @@ class ExportDialog(QDialog):
             "tags": ["#VoiceNote"],
             "summary": "No AI summary available for this note.",
             "key_points": [],
+            "decisions": [],
+            "deadlines": [],
+            "important_numbers": [],
+            "risks_blockers": [],
+            "open_questions": [],
+            "follow_ups": [],
             "tasks": [],
             "transcript": "No transcript text recorded.",
         }
@@ -212,25 +225,43 @@ class ExportDialog(QDialog):
         sec_card.setObjectName("cardFrame")
         s_layout = QVBoxLayout(sec_card)
         s_layout.setContentsMargins(14, 10, 14, 10)
-        s_layout.setSpacing(6)
+        s_layout.setSpacing(8)
 
         s_layout.addWidget(QLabel("<b>3. Sections to Include:</b>"))
         
-        self.chk_summary = QCheckBox("Include AI Executive Summary & Context Takeaways")
-        self.chk_tasks = QCheckBox("Include Extracted Action Items & Tasks Table")
-        self.chk_transcript = QCheckBox("Include Full Audio Transcript with Timestamps")
-        self.chk_metadata = QCheckBox("Include Note Metadata (Date, Duration, Category Tags)")
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(16)
+        grid.setVerticalSpacing(6)
+
+        self.chk_summary = QCheckBox("Executive Summary && Takeaways")
+        self.chk_tasks = QCheckBox("Action Items && Tasks Table")
+        self.chk_decisions = QCheckBox("Key Decisions Captured")
+        self.chk_deadlines = QCheckBox("Deadlines && Commitments")
+        self.chk_risks = QCheckBox("Risks && Blockers Analysis")
+        self.chk_questions = QCheckBox("Open Questions && Follow-ups")
+        self.chk_transcript = QCheckBox("Full Audio Transcript")
+        self.chk_metadata = QCheckBox("Metadata && Meeting Statistics")
+        self.chk_timestamps = QCheckBox("Include Timestamps in Transcript")
+        self.chk_timestamps.setChecked(False)  # Default: NO TIMESTAMPS
         
-        self.chk_summary.setChecked(True)
-        self.chk_tasks.setChecked(True)
-        self.chk_transcript.setChecked(True)
-        self.chk_metadata.setChecked(True)
+        for chk in (
+            self.chk_summary, self.chk_tasks, self.chk_decisions, self.chk_deadlines,
+            self.chk_risks, self.chk_questions, self.chk_transcript, self.chk_metadata
+        ):
+            chk.setChecked(True)
 
-        s_layout.addWidget(self.chk_summary)
-        s_layout.addWidget(self.chk_tasks)
-        s_layout.addWidget(self.chk_transcript)
-        s_layout.addWidget(self.chk_metadata)
+        grid.addWidget(self.chk_summary, 0, 0)
+        grid.addWidget(self.chk_tasks, 1, 0)
+        grid.addWidget(self.chk_decisions, 2, 0)
+        grid.addWidget(self.chk_deadlines, 3, 0)
 
+        grid.addWidget(self.chk_risks, 0, 1)
+        grid.addWidget(self.chk_questions, 1, 1)
+        grid.addWidget(self.chk_transcript, 2, 1)
+        grid.addWidget(self.chk_metadata, 3, 1)
+        grid.addWidget(self.chk_timestamps, 4, 0, 1, 2)
+
+        s_layout.addLayout(grid)
         layout.addWidget(sec_card)
 
         # 3. Destination File Path Selector
@@ -355,8 +386,13 @@ class ExportDialog(QDialog):
         options = {
             "include_summary": self.chk_summary.isChecked(),
             "include_tasks": self.chk_tasks.isChecked(),
+            "include_decisions": self.chk_decisions.isChecked(),
+            "include_deadlines": self.chk_deadlines.isChecked(),
+            "include_risks": self.chk_risks.isChecked(),
+            "include_questions": self.chk_questions.isChecked(),
             "include_transcript": self.chk_transcript.isChecked(),
             "include_metadata": self.chk_metadata.isChecked(),
+            "include_timestamps": self.chk_timestamps.isChecked(),
         }
 
         try:
