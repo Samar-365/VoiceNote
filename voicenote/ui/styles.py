@@ -11,7 +11,7 @@ MAIN_STYLE = """
 QMainWindow, QDialog, QStackedWidget, QScrollArea, QAbstractScrollArea, QWidget#centralWidget {
     background-color: #ECE7DF;
     color: #4A3980;
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 13px;
 }
 
@@ -184,19 +184,25 @@ QPushButton#navBtn[active="true"] {
 QFrame#cardFrame {
     background-color: #FFFFFF;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
 }
 
 QFrame#heroCard {
     background-color: #FFFFFF;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
 }
 
 QFrame#glassFrame {
     background-color: #F8F6F0;
     border: 1px solid #E5E0D6;
-    border-radius: 0px;
+    border-radius: 8px;
+}
+
+/* Global Text & Labels - strictly no borders or outlines */
+QLabel {
+    border: none;
+    background: transparent;
 }
 
 /* Titles & Text */
@@ -204,20 +210,24 @@ QLabel#titleLabel {
     font-size: 18px;
     font-weight: 800;
     color: #1E2B4B;
+    border: none;
+    background: transparent;
 }
 
 QLabel#subtitleLabel {
     color: #5C6479;
     font-size: 13px;
+    border: none;
+    background: transparent;
 }
 
-/* Badges & Status Chips */
+/* Badges & Status Chips - Clean soft pill design without harsh border boxes */
 QLabel#badgeActive {
     background-color: #EBF3EC;
     color: #2E7D32;
-    border: 1px solid #A6D7AC;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -225,9 +235,9 @@ QLabel#badgeActive {
 QLabel#badgePurple {
     background-color: #F2EFF9;
     color: #6D59A7;
-    border: 1px solid #D8D0EB;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -235,9 +245,9 @@ QLabel#badgePurple {
 QLabel#badgeCyan {
     background-color: #EEF2F6;
     color: #3B82F6;
-    border: 1px solid #CBD5E1;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -245,9 +255,9 @@ QLabel#badgeCyan {
 QLabel#badgeAmber {
     background-color: #FEF6E6;
     color: #D97706;
-    border: 1px solid #FCD34D;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
@@ -255,9 +265,9 @@ QLabel#badgeAmber {
 QLabel#badgeRose {
     background-color: #FCE8EC;
     color: #E05A77;
-    border: 1px solid #F5B0C0;
-    border-radius: 0px;
-    padding: 4px 10px;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
     font-weight: 700;
     font-size: 11px;
 }
