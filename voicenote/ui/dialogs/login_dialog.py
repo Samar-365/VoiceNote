@@ -201,7 +201,7 @@ class LoginDialog(QDialog):
             QLabel {
                 background-color: #F2EFF9;
                 color: #6D59A7;
-                border: 1px solid #D8D0EB;
+                border: none;
                 border-radius: 4px;
                 padding: 3px 10px;
                 font-weight: 800;
@@ -363,11 +363,11 @@ class LoginDialog(QDialog):
         # Team & Project Footer Pill
         footer_card = QFrame()
         footer_card.setObjectName("glassFrame")
-        footer_card.setStyleSheet("background-color: #F8F6F0; border: 1px solid #E5E0D6; border-radius: 6px;")
+        footer_card.setStyleSheet("QFrame#glassFrame { background-color: #F8F6F0; border: 1px solid #E5E0D6; border-radius: 6px; } QLabel { border: none; background: transparent; }")
         ft_lay = QHBoxLayout(footer_card)
         ft_lay.setContentsMargins(14, 6, 14, 6)
         ft_lbl = QLabel("VoiceNote Desktop Studio • Samar (UI/UX) • Tejas (Architecture) • Atharv (AI Lead)")
-        ft_lbl.setStyleSheet("color: #7A8299; font-size: 11px; font-weight: 600;")
+        ft_lbl.setStyleSheet("color: #7A8299; font-size: 11px; font-weight: 600; border: none; background: transparent;")
         ft_lay.addWidget(ft_lbl)
         left_layout.addWidget(footer_card)
 

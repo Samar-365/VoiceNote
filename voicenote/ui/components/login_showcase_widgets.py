@@ -507,7 +507,7 @@ class InteractiveFeatureCard(QFrame):
         self.icon_lbl.setStyleSheet(f"""
             QLabel {{
                 background-color: {self.tag_bg};
-                border: 1px solid {self.tag_border};
+                border: none;
                 border-radius: 6px;
             }}
         """)
@@ -517,7 +517,7 @@ class InteractiveFeatureCard(QFrame):
 
         # Title
         self.title_lbl = QLabel(self.title_str)
-        self.title_lbl.setStyleSheet("font-size: 14px; font-weight: 700; color: #1E2B4B;")
+        self.title_lbl.setStyleSheet("font-size: 14px; font-weight: 700; color: #1E2B4B; border: none; background: transparent;")
         header_row.addWidget(self.title_lbl)
         header_row.addStretch()
 
@@ -528,7 +528,7 @@ class InteractiveFeatureCard(QFrame):
                 QLabel {{
                     background-color: {self.tag_bg};
                     color: {self.tag_color};
-                    border: 1px solid {self.tag_border};
+                    border: none;
                     border-radius: 4px;
                     padding: 3px 8px;
                     font-size: 10px;

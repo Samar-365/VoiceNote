@@ -35,6 +35,14 @@ class SemanticSearchWidget(QWidget):
                 logger.warning(f"ChromaDB VectorEngine not loaded: {e}")
         return self.vector_engine
 
+    def reset(self):
+        """Clear search query and reset results view."""
+        if hasattr(self, "search_bar"):
+            self.search_bar.clear()
+        if hasattr(self, "results_title"):
+            self.results_title.setText("Search Results")
+        self.render_results([])
+
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -80,7 +88,7 @@ class SemanticSearchWidget(QWidget):
         chips = ["Architecture", "Database", "Sprint", "Tasks"]
         for chip in chips:
             btn_chip = QPushButton(chip)
-            btn_chip.setStyleSheet("background-color: #FFFFFF; border: 1px solid #E2DDD3; font-size: 11px; padding: 4px 10px; color: #1E2B4B; font-weight: 700;")
+            btn_chip.setStyleSheet("background-color: #F2EFF9; border: none; border-radius: 12px; font-size: 11px; padding: 4px 12px; color: #6D59A7; font-weight: 700;")
             btn_chip.clicked.connect(lambda _, c=chip: self.apply_chip(c))
             chips_row.addWidget(btn_chip)
 
@@ -125,16 +133,28 @@ class SemanticSearchWidget(QWidget):
         v_engine = self._get_vector_engine()
         if v_engine:
             try:
-                v_res = v_engine.search(query, n_results=5)
-                for item in v_res:
-                    meta = item.get("metadata", {})
-                    results.append({
-                        "title": meta.get("title", "Voice Note Match"),
-                        "match": f"{int(item.get('similarity', 0.85) * 100)}% Match",
-                        "timestamp": meta.get("start_time", "00:00:00"),
-                        "snippet": item.get("text", query),
-                        "tag": meta.get("category", "#SemanticMatch")
-                    })
+                matches = v_engine.search(query, top_k=5)
+                if matches:
+                    for m in matches:
+                        dist = m.get("distance")
+                        if dist is not None:
+                            sim_pct = max(10, min(99, int((1.0 - dist) * 100)))
+                        else:
+                            sim_pct = 85
+                        meta = m.get("metadata", {})
+                        title = meta.get("title") or f"Note #{meta.get('note_id', 'Unknown')}"
+                        start_sec = meta.get("start_time", 0.0)
+                        mins, secs = divmod(int(start_sec), 60)
+                        ts_str = f"{mins:02d}:{secs:02d}"
+                        lang = meta.get("language", "EN")
+
+                        results.append({
+                            "title": title,
+                            "match": f"{sim_pct}% Similarity",
+                            "timestamp": ts_str,
+                            "snippet": m.get("text", ""),
+                            "tag": f"#{lang.upper()}"
+                        })
             except Exception as e:
                 logger.warning(f"Vector search execution error: {e}")
 

@@ -83,7 +83,8 @@ class ProfileDialog(QDialog):
         a_layout.addWidget(QLabel("<b>Gemini Cloud AI LLM Model:</b>"))
         self.ai_model_combo = QComboBox()
         self.ai_model_combo.addItems([
-            "gemini-2.5-flash (Recommended)",
+            "gemini-3.8-flash (Latest, Supported & Fastest - Recommended)",
+            "gemini-2.5-flash (Google Cloud AI)",
             "gemini-1.5-pro (In-depth analysis)",
             "gemini-2.0-flash (Fastest inference)"
         ])
@@ -92,10 +93,10 @@ class ProfileDialog(QDialog):
         a_layout.addWidget(QLabel("<b>Whisper STT Model Size:</b>"))
         self.whisper_combo = QComboBox()
         self.whisper_combo.addItems([
-            "small.en (High accuracy, fast)",
-            "base.en (Standard speed)",
-            "medium.en (Highest precision)",
-            "tiny.en (Ultra fast)"
+            "small (Multilingual — Marathi, Hindi, English recommended)",
+            "base (Multilingual — Standard speed)",
+            "medium (Multilingual — Highest precision)",
+            "tiny (Multilingual — Ultra fast)"
         ])
         self.whisper_combo.setCurrentIndex(0)
         a_layout.addWidget(self.whisper_combo)
