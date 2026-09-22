@@ -26,6 +26,7 @@ class VectorEngine:
             )
         )
 
+        self.collection_name = collection_name
         self.collection = self.client.get_or_create_collection(
             name=collection_name,
             embedding_function=self.embedding_function,
@@ -426,6 +427,20 @@ class VectorEngine:
                 ids=ids
             )
 
+        return len(ids)
+
+    # ==========================================================
+    # DELETE ALL
+    # ==========================================================
+
+    def delete_all(self):
+        """Delete all indexed chunks in the collection."""
+        result = self.collection.get()
+        ids = result.get("ids", [])
+        if ids:
+            self.collection.delete(
+                ids=ids
+            )
         return len(ids)
 
     # ==========================================================

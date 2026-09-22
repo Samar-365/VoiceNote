@@ -127,8 +127,18 @@ class DatabaseManager:
                         priority VARCHAR(50) DEFAULT 'Medium',
                         assignee VARCHAR(100) DEFAULT 'Unassigned',
                         due_date VARCHAR(100) DEFAULT 'TBD',
-                        status VARCHAR(50) DEFAULT 'Pending'
+                        status VARCHAR(50) DEFAULT 'Pending',
+                        notes TEXT
                     );
+
+                    -- Safe schema migrations for meeting intelligence
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS decisions TEXT;
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS deadlines TEXT;
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS important_numbers TEXT;
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS risks_blockers TEXT;
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS open_questions TEXT;
+                    ALTER TABLE ai_summaries ADD COLUMN IF NOT EXISTS follow_ups TEXT;
+                    ALTER TABLE tasks ADD COLUMN IF NOT EXISTS notes TEXT;
                 """)
             conn.commit()
 
@@ -279,6 +289,13 @@ class DatabaseManager:
                 row = cursor.fetchone()
                 return dict(row) if row else None
 
+    def get_note_by_title(self, title: str) -> Optional[Dict[str, Any]]:
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM notes WHERE title = %s LIMIT 1;", (title,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
+
     def save_transcript(self, transcript: Transcript) -> int:
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
@@ -298,16 +315,35 @@ class DatabaseManager:
                 return dict(row) if row else None
 
     def save_ai_summary(self, summary: AISummary) -> int:
+        decisions_json = json.dumps(getattr(summary, "decisions", []) or [])
+        deadlines_json = json.dumps(getattr(summary, "deadlines", []) or [])
+        numbers_json = json.dumps(getattr(summary, "important_numbers", []) or [])
+        risks_json = json.dumps(getattr(summary, "risks_blockers", []) or [])
+        questions_json = json.dumps(getattr(summary, "open_questions", []) or [])
+        followups_json = json.dumps(getattr(summary, "follow_ups", []) or [])
+
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO ai_summaries (note_id, summary, key_points, sentiment, main_topics) VALUES (%s, %s, %s, %s, %s) RETURNING id;",
+                    """
+                    INSERT INTO ai_summaries (
+                        note_id, summary, key_points, sentiment, main_topics,
+                        decisions, deadlines, important_numbers, risks_blockers, open_questions, follow_ups
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id;
+                    """,
                     (
                         summary.note_id,
                         summary.summary,
                         json.dumps(summary.key_points),
                         summary.sentiment,
-                        json.dumps(summary.main_topics)
+                        json.dumps(summary.main_topics),
+                        decisions_json,
+                        deadlines_json,
+                        numbers_json,
+                        risks_json,
+                        questions_json,
+                        followups_json
                     )
                 )
                 new_id = cursor.fetchone()["id"]
@@ -324,18 +360,91 @@ class DatabaseManager:
                 res = dict(row)
                 res["key_points"] = json.loads(res["key_points"]) if res.get("key_points") else []
                 res["main_topics"] = json.loads(res["main_topics"]) if res.get("main_topics") else []
+                res["decisions"] = json.loads(res["decisions"]) if res.get("decisions") else []
+                res["deadlines"] = json.loads(res["deadlines"]) if res.get("deadlines") else []
+                res["important_numbers"] = json.loads(res["important_numbers"]) if res.get("important_numbers") else []
+                res["risks_blockers"] = json.loads(res["risks_blockers"]) if res.get("risks_blockers") else []
+                res["open_questions"] = json.loads(res["open_questions"]) if res.get("open_questions") else []
+                res["follow_ups"] = json.loads(res["follow_ups"]) if res.get("follow_ups") else []
                 return res
 
     def save_task(self, task: Task) -> int:
+        notes_val = getattr(task, "notes", "") or ""
         with self.get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO tasks (note_id, title, description, priority, assignee, due_date, status) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id;",
-                    (task.note_id, task.title, task.description, task.priority, task.assignee, task.due_date, task.status)
+                    "INSERT INTO tasks (note_id, title, description, priority, assignee, due_date, status, notes) VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;",
+                    (task.note_id, task.title, task.description, task.priority, task.assignee, task.due_date, task.status, notes_val)
                 )
                 new_id = cursor.fetchone()["id"]
             conn.commit()
             return new_id
+
+    def update_task(
+        self,
+        task_id: int,
+        status: Optional[str] = None,
+        priority: Optional[str] = None,
+        due_date: Optional[str] = None,
+        assignee: Optional[str] = None,
+        title: Optional[str] = None,
+        notes: Optional[str] = None
+    ) -> bool:
+        """Update any field of an existing task in PostgreSQL."""
+        updates = []
+        params = []
+        if status is not None:
+            updates.append("status = %s")
+            params.append(status)
+        if priority is not None:
+            updates.append("priority = %s")
+            params.append(priority)
+        if due_date is not None:
+            updates.append("due_date = %s")
+            params.append(due_date)
+        if assignee is not None:
+            updates.append("assignee = %s")
+            params.append(assignee)
+        if title is not None:
+            updates.append("title = %s")
+            params.append(title)
+        if notes is not None:
+            updates.append("notes = %s")
+            params.append(notes)
+
+        if not updates:
+            return True
+
+        params.append(task_id)
+        sql = f"UPDATE tasks SET {', '.join(updates)} WHERE id = %s;"
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(sql, tuple(params))
+                conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error updating task {task_id}: {e}")
+            return False
+
+    def delete_task(self, task_id: int) -> bool:
+        """Delete a task from PostgreSQL by its ID."""
+        try:
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute("DELETE FROM tasks WHERE id = %s;", (task_id,))
+                conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting task {task_id}: {e}")
+            return False
+
+    def get_tasks_by_note(self, note_id: int) -> List[Dict[str, Any]]:
+        """Retrieve all action items associated with a specific note."""
+        with self.get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT * FROM tasks WHERE note_id = %s ORDER BY id ASC;", (note_id,))
+                return [dict(r) for r in cursor.fetchall()]
 
     def get_all_tasks(self) -> List[Dict[str, Any]]:
         with self.get_connection() as conn:
