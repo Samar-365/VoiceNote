@@ -12,7 +12,10 @@ from faster_whisper import WhisperModel
 
 logger = logging.getLogger("STTEngine")
 
-MARATHI_PROMPT = "चला, आजच्या बैठकीत आपण नियोजन, कर्मचारी आणि बजेट यावर चर्चा करूया."
+MARATHI_PROMPT = (
+    "हा एक मराठी संवाद आहे. सर्व वाक्ये मराठी देवनागरी लिपीत लिहा, इंग्रजीत भाषांतर करू नका. "
+    "चला, आजच्या बैठकीत आपण नियोजन, कर्मचारी, बजेट, vendor, discount, booking, quotation, approval यावर चर्चा करूया."
+)
 HINDI_PROMPT = "नमस्ते, आज की बैठक में हम कार्य योजना, बजट और चर्चा करेंगे।"
 ENGLISH_PROMPT = (
     "Meeting discussion with multiple speakers. Complete sentences, numbers, "

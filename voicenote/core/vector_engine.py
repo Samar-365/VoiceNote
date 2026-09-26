@@ -1,7 +1,16 @@
 from pathlib import Path
+import logging
 
-import chromadb
-from chromadb.utils import embedding_functions
+logger = logging.getLogger("VectorEngine")
+
+try:
+    import chromadb
+    from chromadb.utils import embedding_functions
+    CHROMADB_AVAILABLE = True
+except ImportError:
+    chromadb = None
+    embedding_functions = None
+    CHROMADB_AVAILABLE = False
 
 
 class VectorEngine:
@@ -13,6 +22,11 @@ class VectorEngine:
         collection_name="transcripts",
         embedding_model="all-MiniLM-L6-v2",
     ):
+        if not CHROMADB_AVAILABLE or chromadb is None:
+            raise ImportError(
+                "The 'chromadb' package is required for VectorEngine. "
+                "Please install it with `pip install chromadb`."
+            )
         self.persist_directory = Path(persist_directory)
         self.persist_directory.mkdir(parents=True, exist_ok=True)
 

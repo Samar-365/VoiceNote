@@ -1,4 +1,12 @@
-from voicenote.core.vector_engine import VectorEngine
+import unittest
+from voicenote.core.vector_engine import VectorEngine, CHROMADB_AVAILABLE
+
+try:
+    import pytest
+    if not CHROMADB_AVAILABLE:
+        pytest.skip("chromadb is not installed", allow_module_level=True)
+except ImportError:
+    pass
 
 
 def test_vector_engine_initialization(tmp_path):
