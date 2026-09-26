@@ -27,10 +27,11 @@ logger = logging.getLogger("GroqSTTEngine")
 
 GROQ_PROMPTS = {
     "mr": (
+        "हा एक मराठी संवाद आहे. सर्व वाक्ये मराठी देवनागरी लिपीत लिहा, इंग्रजीत भाषांतर करू नका. "
         "चला, आजच्या बैठकीत आपण वार्षिक कर्मचारी परिषदेचे नियोजन करूया. "
         "बजेट Rs. 2,40,000 आहे. Venue, Catering, vendor, planning, budget, "
-        "employees, Management, discount, approval. "
-        "म्हणजे, जवळपास, आहे, आहेत, साठी, करायचा, एकूण."
+        "employees, Management, discount, approval, booking, quotation, Friday, Perfect. "
+        "म्हणजे, जवळपास, आहे, आहेत, साठी, करायचा, एकूण, वाढला, देईल, करेन, घेऊया."
     ),
     "hi": (
         "नमस्ते, आज की बैठक में हम कार्य योजना, बजट और चर्चा करेंगे। "

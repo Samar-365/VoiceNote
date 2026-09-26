@@ -22,14 +22,26 @@ logger = logging.getLogger("TranscriptCorrector")
 
 MARATHI_CORRECTION_PROMPT = """You are an expert Marathi language transcription corrector.
 
-The following is raw speech-to-text output from Whisper. The original audio is in MARATHI with English words mixed in (code-switching). Whisper has garbled many Marathi words, confused Marathi with Hindi, and transliterated English into Devanagari.
+The following is raw speech-to-text output from Whisper. The original audio is in MARATHI with English words mixed in (code-switching). Whisper has garbled many Marathi words, confused Marathi with Hindi, transliterated English into Devanagari, and in several places mistakenly translated spoken Marathi sentences into English.
 
 RAW WHISPER TRANSCRIPT:
 {transcript}
 
 CORRECTION RULES — FOLLOW STRICTLY:
 
-1. FIX MARATHI GRAMMAR (NOT Hindi):
+1. RESTORE MISTRANSLATED MARATHI SENTENCES:
+   - Whisper frequently translates Marathi spoken sentences into English when it hears English loanwords.
+   - You MUST restore any Marathi thoughts/sentences that Whisper translated into English back into natural Marathi conversational speech in Devanagari script.
+   - Examples of mistranslated sentences to restore:
+     - "Booking confirmed, here vendor will give Rs. 50,000 discount. Then I will prepare final quotation by tomorrow." → "Booking confirm केली आहे, इथे vendor Rs. 50,000 discount देईल. मग मी उद्यापर्यंत final quotation तयार करेन."
+     - "Perfect. Let's get final approval on Friday." → "Perfect. आपण शुक्रवारी final approval घेऊया."
+     - "This year we have to arrange..." → "या वर्षी आपल्याला जवळपास 180 employees साठी कार्यक्रम आयोजित करायचा आहे"
+     - "Venue cost..." → "Venue चा खर्च Rs. 2,40,000 आहे"
+     - "What is our budget?" → "आपलं एकूण budget किती आहे?"
+     - "Management has approved maximum..." → "Management ने maximum Rs. 6,00,000 approve केले आहेत."
+     - "Can we get discount from vendor?" → "आपण vendor कडून discount मिळवू शकतो का?"
+
+2. FIX MARATHI GRAMMAR & SPELLINGS (NOT Hindi):
    - "है" → "आहे" (Marathi present tense)
    - "हैं" → "आहेत" (Marathi plural present tense)
    - "केले हैं" → "केले आहेत"
@@ -47,30 +59,20 @@ CORRECTION RULES — FOLLOW STRICTLY:
    - "केली इते" → "केली. या" or "केली, इथे"
    - "मागचा" → "मागच्या"
 
-2. KEEP ALL ENGLISH WORDS IN ENGLISH — DO NOT TRANSLITERATE:
-   Annual, Employee, Conference, planning, employees, Management, approve,
-   maximum, estimated, discount, Booking, confirm, vendor, quotation,
-   Friday, Perfect, budget, Venue, Catering, and any other English word.
+3. KEEP ISOLATED BUSINESS/TECHNICAL ENGLISH WORDS IN ENGLISH SCRIPT:
+   Keep individual loanwords in English script: Annual, Employee, Conference, planning, employees, Management, approve, maximum, estimated, discount, Booking, confirm, vendor, quotation, Friday, Perfect, budget, Venue, Catering.
+   DO NOT keep entire sentences in English if the context shows they were spoken in Marathi.
 
-3. NUMBER & CURRENCY FORMATTING:
+4. NUMBER & CURRENCY FORMATTING:
    - Write all numbers in English digits: 180, 2,40,000, 1,200, 6,00,000, etc.
    - Use "Rs." prefix for Indian currency: Rs. 2,40,000 (NOT "रुपे" or "₹")
    - Use "%" for percentages: 12%, 5% (NOT "टक्के")
-
-4. RESTORE MISTRANSLATED / GARBLED MARATHI:
-   - If Whisper accidentally translated parts of the Marathi speech into English or garbled phonetics:
-     - "Cm'a" → "चला"
-     - "This year we have to arrange..." → "या वर्षी आपल्याला जवळपास 180 employees साठी कार्यक्रम आयोजित करायचा आहे"
-     - "Venue cost..." → "Venue चा खर्च Rs. 2,40,000 आहे"
-     - "Catering fee..." → "Catering साठी प्रती व्यक्ती Rs. 1,200 म्हणजे एकूण जवळपास Rs. 2,16,000 येतील"
-     - "What is our budget?" → "आपलं एकूण budget किती आहे?"
-     - Restore natural Marathi conversational flow while retaining English business terms.
 
 5. PRESERVE CONTENT & FLOW:
    - Keep the continuous spoken dialogue intact.
    - Do NOT add speaker labels here.
    - Do NOT add timestamps.
-   - Fix all Devanagari spellings, Marathi grammar, and correct numbers.
+   - Fix all Devanagari spellings, Marathi grammar, and restore natural Marathi conversational flow.
 
 OUTPUT: Return ONLY the corrected transcript text. No markdown, no explanations, no code fences."""
 

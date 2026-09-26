@@ -146,7 +146,8 @@ class PipelineWorker(QThread):
                 try:
                     ai_engine = AIEngine()
                     transcript_for_ai = formatted_transcript if formatted_transcript else full_transcript_text
-                    analysis_res = ai_engine.analyze_transcript(transcript_for_ai, language=detected_lang)
+                    target_ai_lang = self.language if self.language and self.language.lower() not in ("auto", "none", "") else detected_lang
+                    analysis_res = ai_engine.analyze_transcript(transcript_for_ai, language=target_ai_lang)
                     
                     summary_text = analysis_res.summary
                     key_points = analysis_res.key_points
