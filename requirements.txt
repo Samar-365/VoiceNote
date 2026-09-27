@@ -6,6 +6,7 @@ PySide6>=6.6.0
 # Audio Recording & Processing
 sounddevice>=0.4.6
 soundfile>=0.12.1
+pyaudiowpatch>=0.2.12.8; sys_platform == 'win32'
 numpy>=1.24.0
 
 # Speech-to-Text (STT)
