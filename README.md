@@ -1,42 +1,55 @@
 # VoiceNote: Intelligent Desktop Audio Intelligence & Semantic Retrieval System
 
-VoiceNote is a privacy-first, offline-capable desktop application for recording audio, transcribing speech, repairing multilingual code-switched transcripts (e.g., Marathi/Hindi with English), extracting structured AI-generated insights, and enabling high-performance semantic search.
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PySide6](https://img.shields.io/badge/UI-PySide6%20Qt6-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-FF6F61)](https://www.trychroma.com/)
+[![Gemini AI](https://img.shields.io/badge/LLM-Gemini%203.8%20Flash-4285F4?logo=google&logoColor=white)](https://ai.google.dev/)
+[![Whisper STT](https://img.shields.io/badge/STT-Faster--Whisper%20%7C%20Groq-F55036)](https://github.com/SYSTRAN/faster-whisper)
 
-Developed by:
-- **Tejas** — Architecture & Integration Lead
-- **Samar** — UI/UX & System Integration Lead
-- **Atharv** — AI Lead
-
----
-
-## Document Index
-
-- [Architecture Overview](doc/architecture.md)
-- [Software Requirements Specification](doc/srs.md)
-- [Implementation Plan](doc/implementation-plan.md)
-- [Module Breakdown](doc/module-breakdown.md)
-- [Database Setup Guide](doc/database-setup.md)
+**VoiceNote** is a privacy-first, offline-capable Windows desktop application designed to transform spoken meetings, lectures, and voice memos into structured, searchable intelligence. It features live audio waveform capture, multilingual transcription with specialized Marathi/Hindi code-switching correction, automated speaker diarization, AI-driven action item extraction, and natural language semantic retrieval powered by a hybrid dual-database architecture.
 
 ---
 
-## Core Technology Stack
+## Simple Workflow Diagram
 
-| Layer | Primary Technology | Purpose |
-| :--- | :--- | :--- |
-| **Frontend UI** | **PySide6 (Qt 6 for Python)** | Native desktop UI, 60 FPS waveform visualization, responsive layouts |
-| **Concurrency** | **Qt QThread, Signal & Slot** | Non-blocking background worker pipeline |
-| **Audio DSP** | **sounddevice, soundfile, pyaudiowpatch, numpy** | Audio capture, loopback recording, and real-time amplitude normalization |
-| **Speech-to-Text (STT)** | **faster-whisper (CTranslate2) & Groq** | Local offline transcription & high-speed cloud STT |
-| **AI & NLP** | **Google Gemini (google-genai) + Pydantic v2** | Structured summarization, task extraction, and linguistic error correction |
-| **Relational Database** | **PostgreSQL (psycopg2-binary)** | ACID-compliant structured metadata, transcripts, and relational task tracking |
-| **Vector Database** | **ChromaDB + sentence-transformers (all-MiniLM-L6-v2)** | 384-dimensional dense vector embeddings for cosine semantic retrieval |
-| **Document Export** | **ReportLab & python-docx** | Formatted export to PDF, Word DOCX, and plain text |
+How a recording turns into actionable knowledge:
+
+```mermaid
+flowchart LR
+    A[Record / Upload Audio] --> B[Speech-to-Text]
+    B --> C[Multilingual Grammar Fix]
+    C --> D[Speaker Diarization]
+    D --> E[Gemini Structured AI]
+    E --> F[(Dual Storage:\nPostgres + ChromaDB)]
+    F --> G[Semantic Search & Analytics]
+```
+
+### Step-by-Step User Journey:
+1. **Capture**: Speak into the microphone with a real-time 60 FPS waveform display, or upload any `.wav`, `.mp3`, or `.m4a` recording.
+2. **Transcribe**: Audio is processed locally via `faster-whisper` (offline) or accelerated via `Groq LPU` (cloud).
+3. **Correct & Diarize**: Proprietary linguistic rules fix Indian multilingual code-switching (e.g. Marathi verbs confused with Hindi), strip distracting timestamps, and assign persistent speaker color tags.
+4. **Extract Intelligence**: Google Gemini models map conversational transcripts into rigid Pydantic schemas: Executive Summaries, Action Items (Assignee, Priority, Due Date), Key Decisions, and Numbers.
+5. **Store & Retrieve**: Relational data commits to **PostgreSQL**, while dense vector embeddings index into **ChromaDB** for instant natural language semantic retrieval.
 
 ---
 
-## System Architecture Diagrams
+## Key Features
 
-### 1. High-Level Layered System Architecture
+- **Real-Time Waveform & Studio Audio Capture**: High-fidelity recording with live Decibel (dBFS) normalization using `sounddevice` and Windows WASAPI loopback support.
+- **Dual-Engine Speech Recognition**: Offline-first via `faster-whisper` (CTranslate2 8-bit quantized) with zero cloud dependency, plus instant cloud inference via Groq `whisper-large-v3`.
+- **Multilingual Code-Switching Corrector**: Solves Whisper's known degradation with regional languages (Marathi/Hindi mixed with English), restoring proper Devanagari grammar and undoing spontaneous mistranslations.
+- **Speaker Diarization & Script Formatting**: Distinguishes multiple voices, merges contiguous dialogue into natural paragraphs, and strips noisy timestamp clutter.
+- **Actionable Task & Decision Extraction**: Automatically extracts tasks with assignees, priorities, and deadlines, directly populated into an interactive task board.
+- **Semantic Vector Search (RAG-Ready)**: Ask natural language questions like *"What did we decide about the budget?"* and retrieve matching notes based on conceptual meaning, not just exact keywords.
+- **Real Data Analytics Dashboard**: 100% computed metrics: speaker talk-time distribution, sentiment analysis, task completion ratios, and recording trends over 7/30/90 days.
+- **Multi-Format Document Export**: One-click generation of professional PDF reports (via ReportLab) and editable Microsoft Word documents (`.docx`).
+
+---
+
+## System Architecture
+
+### 1. High-Level Layered Architecture
 
 ```mermaid
 graph TB
@@ -135,7 +148,7 @@ flowchart TD
     Embed -->|384-dimensional Query Vector| Cosine["ChromaDB Collection: voicenote_embeddings"]
     
     subgraph ChromaSearch ["Vector Space Search"]
-        Cosine -->|K-Nearest Neighbor / Cosine Distance| Ranks["Ranked Document Chunks\nwith Distance Scores"]
+        Cosine -->|Cosine Distance Nearest Neighbors| Ranks["Ranked Document Chunks\nwith Relevance Scores"]
     end
     
     Ranks -->|Extract Primary Keys| NoteIDs["Target Note IDs\n(e.g., Note #4, Note #12)"]
@@ -196,3 +209,118 @@ erDiagram
     }
 ```
 
+---
+
+## Technology Stack Breakdown
+
+| Layer | Primary Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend UI** | **PySide6 (Qt 6 for Python)** | Native desktop UI, 60 FPS waveform visualization, responsive layouts |
+| **Concurrency** | **Qt QThread, Signal & Slot** | Non-blocking background worker pipeline |
+| **Audio DSP** | **sounddevice, soundfile, pyaudiowpatch, numpy** | Audio capture, loopback recording, and real-time amplitude normalization |
+| **Speech-to-Text (STT)** | **faster-whisper (CTranslate2) & Groq** | Local offline transcription & high-speed cloud STT |
+| **AI & NLP** | **Google Gemini (google-genai) + Pydantic v2** | Structured summarization, task extraction, and linguistic error correction |
+| **Relational Database** | **PostgreSQL (psycopg2-binary)** | ACID-compliant structured metadata, transcripts, and relational task tracking |
+| **Vector Database** | **ChromaDB + sentence-transformers (all-MiniLM-L6-v2)** | 384-dimensional dense vector embeddings for cosine semantic retrieval |
+| **Document Export** | **ReportLab & python-docx** | Formatted export to PDF, Word DOCX, and plain text |
+
+---
+
+## Repository Structure
+
+```text
+VoiceNote/
+├── doc/                        # Architectural specifications and SRS documentation
+│   ├── architecture.md         # Detailed dual-database and storage architecture
+│   ├── database-setup.md       # PostgreSQL schema setup instructions
+│   └── srs.md                  # Software Requirements Specification
+├── voicenote/                  # Core application package
+│   ├── config.py               # Central configuration, paths, and environment settings
+│   ├── core/                   # Algorithmic and processing engines
+│   │   ├── ai_engine.py            # Gemini integration and Pydantic schema validation
+│   │   ├── analytics_engine.py     # Aggregation and metric computations
+│   │   ├── audio_engine.py         # Audio capture, recording, and playback
+│   │   ├── diarization_engine.py   # Speaker separation and conversation structuring
+│   │   ├── export_engine.py        # PDF and Word DOCX document generation
+│   │   ├── groq_stt_engine.py      # Cloud Whisper on Groq LPU
+│   │   ├── stt_engine.py           # Local faster-whisper engine
+│   │   ├── text_cleaner.py         # Text whitespace and symbol normalization
+│   │   ├── transcript_corrector.py # Multilingual regional grammar & code-switch correction
+│   │   └── vector_engine.py        # ChromaDB indexing and cosine search
+│   ├── db/                     # Database access layer
+│   │   ├── database.py             # PostgreSQL connection and CRUD operations
+│   │   └── models.py               # Data models for notes, transcripts, summaries, and tasks
+│   ├── services/               # Background task orchestration
+│   │   └── worker.py               # Asynchronous QThread pipeline worker
+│   └── ui/                     # PySide6 desktop user interface
+│       ├── components/             # Reusable widgets (Waveform, Taskboard, Search, Analytics)
+│       ├── dialogs/                # Modals (Login, Settings, Profile, Export)
+│       ├── main_window.py          # Main application window & navigation controller
+│       └── styles.py               # Custom retro-cream stylesheet tokens
+├── data/                       # Local recordings and generated artifacts
+├── main.py                     # Application entry point with session management
+├── requirements.txt            # Python dependencies
+└── run_all_tests.py            # Automated test runner suite
+```
+
+---
+
+## Getting Started
+
+### 1. Prerequisites
+- **Python 3.11+** installed
+- **PostgreSQL 14+** running locally or remotely
+
+### 2. Installation
+Clone the repository and set up a virtual environment:
+
+```bash
+git clone https://github.com/Samar-365/VoiceNote.git
+cd VoiceNote
+
+python -m venv .venv
+# On Windows:
+.venv\Scripts\activate
+# On Linux / macOS:
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### 3. Environment Configuration
+Create a `.env` file from the example template:
+
+```bash
+cp .env.example .env
+```
+
+Update your `.env` with your API keys and database credentials:
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+
+DB_ENGINE=postgres
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=voicenote
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_password
+```
+
+### 4. Database Setup
+Ensure your PostgreSQL database exists:
+```sql
+CREATE DATABASE voicenote;
+```
+*(The application will automatically initialize the tables upon first run).*
+
+### 5. Launch Application
+```bash
+python main.py
+```
+
+### 6. Run Test Suite
+To verify database persistence, the multilingual cleaner, and the AI pipeline:
+```bash
+python run_all_tests.py
+```
