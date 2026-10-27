@@ -50,7 +50,7 @@ class AIEngine:
     def __init__(
         self,
         api_key=None,
-        model="gemini-2.5-flash",
+        model="gemini-3.5-flash",
         temperature=0.3
     ):
         self.model = os.getenv("GEMINI_MODEL", model)
@@ -90,7 +90,7 @@ class AIEngine:
                     time.sleep(sleep_time)
                     continue
 
-        fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
+        fallback_models = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
         for fb_model in fallback_models:
             if fb_model != self.model:
                 try:

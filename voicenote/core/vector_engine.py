@@ -34,11 +34,14 @@ class VectorEngine:
             path=str(self.persist_directory)
         )
 
-        self.embedding_function = (
-            embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name=embedding_model
+        try:
+            self.embedding_function = (
+                embedding_functions.SentenceTransformerEmbeddingFunction(
+                    model_name=embedding_model
+                )
             )
-        )
+        except Exception:
+            self.embedding_function = embedding_functions.DefaultEmbeddingFunction()
 
         self.collection_name = collection_name
         self.collection = self.client.get_or_create_collection(
