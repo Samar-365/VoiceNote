@@ -50,7 +50,7 @@ class AIEngine:
     def __init__(
         self,
         api_key=None,
-        model="gemini-3.8-flash",
+        model="gemini-2.5-flash",
         temperature=0.3
     ):
         self.model = os.getenv("GEMINI_MODEL", model)
@@ -90,8 +90,7 @@ class AIEngine:
                     time.sleep(sleep_time)
                     continue
 
-        # If primary model failed due to overload/503/quota, try fallback models gracefully
-        fallback_models = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]
+        fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"]
         for fb_model in fallback_models:
             if fb_model != self.model:
                 try:
