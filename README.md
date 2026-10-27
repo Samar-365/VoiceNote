@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![VoiceNote Logo](assets/voicenote_logo.png)
-
 ### *"LISTEN. UNDERSTAND. ORGANIZE. ACT."*
 
 **A Privacy-First, Multilingual Desktop Intelligence Platform with Triple-Tier Hybrid Storage**
