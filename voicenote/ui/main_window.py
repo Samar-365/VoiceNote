@@ -104,6 +104,7 @@ class MainWindow(QMainWindow):
 
         # View 2: AI Summary & Task Board View
         self.summary_task_view = SummaryTaskWidget()
+        self.summary_task_view.task_updated.connect(self.update_stat_cards)
         self.stack.addWidget(self.summary_task_view)
 
         # View 3: Semantic Search View
@@ -133,52 +134,78 @@ class MainWindow(QMainWindow):
         self.home_layout.setContentsMargins(0, 0, 0, 0)
         self.home_layout.setSpacing(16)
 
-        # A. Quick Overview Stat Cards Row
-        stats_row = QHBoxLayout()
-        stats_row.setSpacing(12)
+        # A. Quick Overview Stat Cards Row (Interactive & Dynamic)
+        self.stats_row = QHBoxLayout()
+        self.stats_row.setSpacing(12)
 
-        total_notes = self.db.get_note_count() if self.db else 0
-        tasks_count = len(self.db.get_all_tasks()) if self.db else 0
-        all_notes = self.db.get_all_notes() if self.db else []
-        
-        try:
-            from voicenote.core.analytics_engine import AnalyticsEngine
-            tot_sec = sum(AnalyticsEngine.parse_duration_to_seconds(n.get("duration")) for n in all_notes)
-            formatted_tot = AnalyticsEngine.format_seconds_to_human(tot_sec)
-            avg_str = AnalyticsEngine.format_seconds_to_human(tot_sec / total_notes) if total_notes > 0 else "0m 00s"
-        except Exception:
-            formatted_tot = "0m 00s"
-            avg_str = "0m 00s"
-
-        stats_data = [
-            ("Total Voice Notes", f"{total_notes} Notes", f"{total_notes} recorded", "badgePurple"),
-            ("Recorded Audio", formatted_tot, f"Avg {avg_str} / note", "badgeCyan"),
-            ("Pending Tasks", f"{tasks_count} Tasks", "Active" if tasks_count > 0 else "None pending", "badgeAmber"),
-            ("Local AI Privacy", "Active", "Whisper & Gemini", "badgeActive"),
-        ]
-
-        for title, val, sub, badge_cls in stats_data:
+        def make_stat_card(title: str, on_click_callback, tooltip_text: str):
             card = QFrame()
-            card.setObjectName("cardFrame")
+            card.setObjectName("statCard")
+            card.setStyleSheet("""
+                QFrame#statCard {
+                    background-color: #FFFFFF;
+                    border: 1px solid #E5E0D6;
+                    border-radius: 8px;
+                }
+                QFrame#statCard:hover {
+                    background-color: #FAF8F5;
+                    border: 1px solid #B0A795;
+                }
+            """)
+            card.setCursor(Qt.CursorShape.PointingHandCursor)
+            card.setToolTip(tooltip_text)
+            card.mousePressEvent = lambda e: on_click_callback()
+
             c_lay = QVBoxLayout(card)
             c_lay.setContentsMargins(16, 14, 16, 14)
 
-            v_lbl = QLabel(val)
+            v_lbl = QLabel("--")
             v_lbl.setStyleSheet("color: #1E2B4B; font-size: 24px; font-weight: 900; margin: 2px 0;")
 
             t_lbl = QLabel(title)
             t_lbl.setStyleSheet("color: #5C6479; font-size: 12px; font-weight: 700;")
 
-            s_lbl = QLabel(sub)
-            s_lbl.setObjectName(badge_cls)
-
+            s_lbl = QLabel("--")
+            
             c_lay.addWidget(v_lbl)
             c_lay.addWidget(t_lbl)
             c_lay.addWidget(s_lbl)
+            return card, v_lbl, s_lbl
 
-            stats_row.addWidget(card)
+        # 1. Total Notes Card -> Navigates to Transcripts & Notes View
+        card_notes, self.lbl_notes_val, self.lbl_notes_sub = make_stat_card(
+            "Total Voice Notes",
+            lambda: self.sidebar.on_nav_click(1),
+            "Click to view all Voice Notes & Transcripts"
+        )
+        self.stats_row.addWidget(card_notes)
 
-        self.home_layout.addLayout(stats_row)
+        # 2. Recorded Audio Card -> Navigates to Analytics Dashboard View
+        card_audio, self.lbl_audio_val, self.lbl_audio_sub = make_stat_card(
+            "Recorded Audio",
+            lambda: self.sidebar.on_nav_click(4),
+            "Click to view Audio Duration & Meeting Analytics"
+        )
+        self.stats_row.addWidget(card_audio)
+
+        # 3. Pending Tasks Card -> Navigates to AI Action Items View
+        card_tasks, self.lbl_tasks_val, self.lbl_tasks_sub = make_stat_card(
+            "Pending Tasks",
+            lambda: self.sidebar.on_nav_click(2),
+            "Click to open AI Action Items & Task Board"
+        )
+        self.stats_row.addWidget(card_tasks)
+
+        # 4. Local AI Privacy Card -> Opens Settings & Model Config
+        card_privacy, self.lbl_privacy_val, self.lbl_privacy_sub = make_stat_card(
+            "Local AI Privacy",
+            self.show_settings_dialog,
+            "Click to configure AI Models & Privacy Settings"
+        )
+        self.stats_row.addWidget(card_privacy)
+
+        self.home_layout.addLayout(self.stats_row)
+        self.update_stat_cards()
 
         # B. Live Audio Recorder Component
         self.recorder_widget = AudioRecorderWidget()
@@ -216,8 +243,78 @@ class MainWindow(QMainWindow):
         scroll.setWidget(container)
         return scroll
 
+    def update_stat_cards(self):
+        """Dynamically recalculate and update all 4 overview metric cards."""
+        if not hasattr(self, "lbl_notes_val"):
+            return
+
+        all_notes = self.db.get_all_notes() if self.db else []
+        total_notes = len(all_notes)
+        all_tasks = self.db.get_all_tasks() if self.db else []
+        pending_tasks = len([
+            t for t in all_tasks
+            if str(t.get("status", "")).strip().lower() not in ("completed", "done", "finished")
+        ])
+
+        # Audio duration calculations
+        tot_sec = 0.0
+        try:
+            from voicenote.core.analytics_engine import AnalyticsEngine
+            tot_sec = sum(AnalyticsEngine.parse_duration_to_seconds(n.get("duration")) for n in all_notes)
+            formatted_tot = AnalyticsEngine.format_seconds_to_human(tot_sec)
+            avg_str = AnalyticsEngine.format_seconds_to_human(tot_sec / total_notes) if total_notes > 0 else "0m 00s"
+        except Exception:
+            formatted_tot = "0m 00s"
+            avg_str = "0m 00s"
+
+        # 1. Update Total Voice Notes Card
+        self.lbl_notes_val.setText(f"{total_notes} Notes")
+        self.lbl_notes_sub.setText(f"{total_notes} recorded")
+        self.lbl_notes_sub.setObjectName("badgePurple")
+        self.lbl_notes_sub.style().unpolish(self.lbl_notes_sub)
+        self.lbl_notes_sub.style().polish(self.lbl_notes_sub)
+
+        # 2. Update Recorded Audio Card
+        self.lbl_audio_val.setText(formatted_tot)
+        self.lbl_audio_sub.setText(f"Avg {avg_str} / note")
+        self.lbl_audio_sub.setObjectName("badgeCyan")
+        self.lbl_audio_sub.style().unpolish(self.lbl_audio_sub)
+        self.lbl_audio_sub.style().polish(self.lbl_audio_sub)
+
+        # 3. Update Pending Tasks Card
+        self.lbl_tasks_val.setText(f"{pending_tasks} Tasks")
+        if len(all_tasks) == 0:
+            self.lbl_tasks_sub.setText("No tasks")
+            self.lbl_tasks_sub.setObjectName("badgeCyan")
+        elif pending_tasks > 0:
+            self.lbl_tasks_sub.setText("Active")
+            self.lbl_tasks_sub.setObjectName("badgeAmber")
+        else:
+            self.lbl_tasks_sub.setText("All completed")
+            self.lbl_tasks_sub.setObjectName("badgeActive")
+        self.lbl_tasks_sub.style().unpolish(self.lbl_tasks_sub)
+        self.lbl_tasks_sub.style().polish(self.lbl_tasks_sub)
+
+        # 4. Update Local AI Privacy Card
+        from voicenote.config import GEMINI_API_KEY, GROQ_API_KEY
+        if GEMINI_API_KEY and GROQ_API_KEY:
+            self.lbl_privacy_val.setText("Active")
+            self.lbl_privacy_sub.setText("Whisper & Gemini")
+            self.lbl_privacy_sub.setObjectName("badgeActive")
+        elif GEMINI_API_KEY or GROQ_API_KEY:
+            self.lbl_privacy_val.setText("Online")
+            self.lbl_privacy_sub.setText("Hybrid Cloud")
+            self.lbl_privacy_sub.setObjectName("badgeCyan")
+        else:
+            self.lbl_privacy_val.setText("Offline")
+            self.lbl_privacy_sub.setText("Local Whisper")
+            self.lbl_privacy_sub.setObjectName("badgePurple")
+        self.lbl_privacy_sub.style().unpolish(self.lbl_privacy_sub)
+        self.lbl_privacy_sub.style().polish(self.lbl_privacy_sub)
+
     def refresh_notes_list(self):
         """Fetch notes from database and render NoteCards."""
+        self.update_stat_cards()
         while self.notes_container.count():
             child = self.notes_container.takeAt(0)
             if child.widget():
@@ -265,7 +362,9 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(index)
         views = ["Home & Recorder", "Transcripts & Notes", "AI Summary & Tasks", "Semantic Search", "Analytics Dashboard"]
         self.status_bar.showMessage(f"Active View: {views[index]}")
-        if index == 4 and hasattr(self, "analytics_view"):
+        if index == 0:
+            self.update_stat_cards()
+        elif index == 4 and hasattr(self, "analytics_view"):
             self.analytics_view.refresh_data()
 
     def on_header_search(self, query: str):
@@ -559,3 +658,9 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage("Error processing voice note.")
         QMessageBox.critical(self, "Processing Error", f"Failed to process recording:\n\n{err_msg}")
+
+    def closeEvent(self, event):
+        if hasattr(self, "worker") and self.worker and self.worker.isRunning():
+            self.worker.quit()
+            self.worker.wait(1500)
+        super().closeEvent(event)
