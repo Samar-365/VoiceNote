@@ -186,10 +186,10 @@ class SettingsDialog(QDialog):
         lay.addWidget(llm_lbl)
 
         self.combo_llm = QComboBox()
-        self.combo_llm.addItem("Gemini 3.8 Flash (Latest, Supported & Fastest - Recommended)", "gemini-3.8-flash")
+        self.combo_llm.addItem("Gemini 3.5 Flash (Active Quota & Fast - Recommended)", "gemini-3.5-flash")
+        self.combo_llm.addItem("Gemini 3.6 Flash (High Performance)", "gemini-3.6-flash")
         self.combo_llm.addItem("Gemini 2.5 Flash (Google Cloud AI)", "gemini-2.5-flash")
-        self.combo_llm.addItem("Gemini 1.5 Pro (In-depth Reasoning)", "gemini-1.5-pro")
-        self.combo_llm.addItem("Gemini 2.0 Flash (High Speed Inference)", "gemini-2.0-flash")
+        self.combo_llm.addItem("Gemini 3.8 Flash (Latest Preview)", "gemini-3.8-flash")
         lay.addWidget(self.combo_llm)
 
         # API Status Cards

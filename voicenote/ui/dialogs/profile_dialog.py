@@ -83,10 +83,10 @@ class ProfileDialog(QDialog):
         a_layout.addWidget(QLabel("<b>Gemini Cloud AI LLM Model:</b>"))
         self.ai_model_combo = QComboBox()
         self.ai_model_combo.addItems([
-            "gemini-3.8-flash (Latest, Supported & Fastest - Recommended)",
+            "gemini-3.5-flash (Active Quota & Fast - Recommended)",
+            "gemini-3.6-flash (High Performance)",
             "gemini-2.5-flash (Google Cloud AI)",
-            "gemini-1.5-pro (In-depth analysis)",
-            "gemini-2.0-flash (Fastest inference)"
+            "gemini-3.8-flash (Latest Preview)"
         ])
         a_layout.addWidget(self.ai_model_combo)
 
